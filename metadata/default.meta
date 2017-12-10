@@ -1,0 +1,11 @@
+[]
+access = read : [ * ], write : [ admin, power ]
+
+[visualizations/missile_map]
+export = system
+
+[lookups/missilemap_testdata.csv]
+export = system
+
+[transforms/missilemap_testdata]
+export = system
