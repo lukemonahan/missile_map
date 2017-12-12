@@ -74,20 +74,50 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                maxZoom: 19,
 	                url: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 	                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	            
+
 	            },
 	            'light_tiles': {
 	                minZoom: 1,
 	                maxZoom: 19,
 	                url: 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
 	                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
-	            }, 
+	            },
+	            'light_tiles_no_labels': {
+                    minZoom: 1,
+                    maxZoom: 19,
+                    url: 'http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+                },
 	            'dark_tiles': {
 	                minZoom: 1,
 	                maxZoom: 19,
 	                url: 'http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
 	                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	            },
+	            'dark_tiles_no_labels': {
+                    minZoom: 1,
+                    maxZoom: 19,
+                    url: 'http://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+                },
+                'antique_tiles': {
+                    minZoom: 1,
+                    maxZoom: 19,
+                    url: 'https://cartocdn_{s}.global.ssl.fastly.net/base-antique/{z}/{x}/{y}.png',
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+                },
+                'flat_blue': {
+                    minZoom: 1,
+                    maxZoom: 19,
+                    url: 'https://cartocdn_{s}.global.ssl.fastly.net/base-flatblue/{z}/{x}/{y}.png',
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+                },
+                'midnight_commander': {
+                    minZoom: 1,
+                    maxZoom: 19,
+                    url: 'https://cartocdn_{s}.global.ssl.fastly.net/base-midnight/{z}/{x}/{y}.png',
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+                },
 	            'splunk': {
 	                minZoom: 1,
 	                maxZoom: 19,
@@ -146,6 +176,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	            var staticColor = this._getEscapedProperty('staticColor', config) || "#65a637";
 	            var lineThickness = parseInt(this._getEscapedProperty('lineThickness', config) || 1);
+	            var arrowSpeed = parseFloat(this._getEscapedProperty('arrowSpeed', config) || 1.0);
 	            var updateLineWidth = lineThickness != this.activeLineThickness;
 
 	    		if (!this.isInitializedDom) {
@@ -229,6 +260,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                    case "weight":
 	                        var weight_idx = i;
 	                        break;
+                        case "speed":
+	                        var speed_idx = i;
+	                        break;
 	                }
 	            }
 
@@ -243,14 +277,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                var animate = vizUtils.normalizeBoolean(d[animate_idx]);
 	                var pulse_at_start = vizUtils.normalizeBoolean(d[pulse_idx]);
 	                var weight = +d[weight_idx];
+	                var speed = +d[speed_idx];
 
 	                if (animate) animated = true; // Global flag to run (or not) the animation loop
 
 	                if (!color) color = staticColor;
 	                if (!weight) weight = lineThickness;
+	                if (!speed) speed = arrowSpeed;
 
 	                return {
-	                    "from":[start_lon, start_lat], "to":[end_lon, end_lat], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
+	                    "from":[start_lon, start_lat], "to":[end_lon, end_lat], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight, "speed": speed
 	                }
 	            });
 
@@ -25164,7 +25200,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	            this.radius = radius;
 	            this.lineWidth = options.width || 1;
 	            this.strokeStyle = options.color || '#fff';
-	            this.factor = 2 / this.radius;
+	            this.factor = options.speed*2.0 / this.radius;
 	            this.deltaAngle = (80 / Math.min(this.radius, 400)) / this.tailPointsCount;
 	            this.trailAngle = this.startAngle;
 	            this.arcAngle = this.startAngle;
@@ -25334,6 +25370,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                        endX: element.to[0],
 	                        endY: element.to[1],
 	                        width: 15,
+	                        speed: element.speed,
 	                        color: element.color,
 	                        display: element.animate //**//
 	                    });
@@ -25473,7 +25510,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                        color: d.color,
 	                        animate: d.animate,
 	                        reverse: d.pulse_at_start,
-	                        weight: d.weight
+	                        weight: d.weight,
+	                        speed: d.speed
 	                    }
 	                }, this);
 

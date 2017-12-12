@@ -15,15 +15,31 @@
     		<option value="8">8</option>
     	</splunk-select>
     </splunk-control-group>
+    <splunk-control-group label="Arrows Speed">
+        <splunk-select name="{{VIZ_NAMESPACE}}.arrowSpeed" value="1">
+            <option value="0.1">10%</option>
+            <option value="0.2">20%</option>
+            <option value="0.5">50%</option>
+            <option value="1">100%</option>
+            <option value="2">200%</option>
+            <option value="3">300%</option>
+            <option value="4">400%</option>
+        </splunk-select>
+    </splunk-control-group>
 </form>
 <form class="splunk-formatter-section" section-label="Map">
     <splunk-control-group label="Tile set">
         <splunk-select name="{{VIZ_NAMESPACE}}.tileSet">
             <option value="splunk" selected>Splunk (offline)</option>
             <option value="light_tiles" selected>Carto light</option>
+            <option value="light_tiles_no_labels">Carto light (no labels)</option>
             <option value="dark_tiles">Carto dark</option>
+            <option value="dark_tiles_no_labels">Carto dark (no labels)</option>
             <option value="satellite_tiles">ArcGis satellite</option>
             <option value="openstreetmap_tiles">Open Street Map</option>
+            <option value="antique_tiles">World Antique</option>
+            <option value="flat_blue">Flat Blue</option>
+            <option value="midnight_commander">Midnight Commander</option>
         </splunk-select>
     </splunk-control-group>
     <splunk-control-group label="Custom tile set">
