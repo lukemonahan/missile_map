@@ -60,33 +60,33 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	            L,
 	            SplunkVisualizationBase,
 	            vizUtils
-	        ) {    
+	        ) {
 
 	        var TILE_PRESETS = {
 	            'satellite_tiles': {
 	                minZoom: 1,
 	                maxZoom: 19,
-	                url: 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+	                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 	                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 	            },
 	            'openstreetmap_tiles': {
 	                minZoom: 1,
 	                maxZoom: 19,
-	                url: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-	                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	            
+	                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+	                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
 	            },
 	            'light_tiles': {
 	                minZoom: 1,
 	                maxZoom: 19,
-	                url: 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-	                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
-	            }, 
+	                url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+	                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
+	            },
 	            'dark_tiles': {
 	                minZoom: 1,
 	                maxZoom: 19,
-	                url: 'http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-	                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+	                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+	                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
 	            },
 	            'splunk': {
 	                minZoom: 1,
@@ -107,13 +107,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	            this.isInitializedDom = false;
 	        },
 
-	        // Optionally implement to format data returned from search. 
+	        // Optionally implement to format data returned from search.
 	        // The returned object will be passed to updateView as 'data'
 	        formatData: function(data) {
 
 	            return data;
 	        },
-	  
+
 	        // Implement updateView to render a visualization.
 	        //  'data' will be the data object returned from formatData or from the search
 	        //  'config' will be the configuration property object
@@ -158,7 +158,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                var migrationLayer = this.migrationLayer = new L.migrationLayer({map: map, arcWidth: lineThickness});
 	                migrationLayer.addTo(map);
 
-	    			this.isInitializedDom = true;         
+	    			this.isInitializedDom = true;
 	    		} else {
 	                if (updateTiles || updateLineWidth || updateBounds) {
 
@@ -291,14 +291,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 	 * jQuery JavaScript Library v2.2.4
-	 * http://jquery.com/
+	 * https://jquery.com/
 	 *
 	 * Includes Sizzle.js
-	 * http://sizzlejs.com/
+	 * https://sizzlejs.com/
 	 *
 	 * Copyright jQuery Foundation and other contributors
 	 * Released under the MIT license
-	 * http://jquery.org/license
+	 * https://jquery.org/license
 	 *
 	 * Date: 2016-05-20T17:23Z
 	 */
@@ -836,11 +836,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	var Sizzle =
 	/*!
 	 * Sizzle CSS Selector Engine v2.2.1
-	 * http://sizzlejs.com/
+	 * https://sizzlejs.com/
 	 *
 	 * Copyright jQuery Foundation and other contributors
 	 * Released under the MIT license
-	 * http://jquery.org/license
+	 * https://jquery.org/license
 	 *
 	 * Date: 2015-10-17
 	 */
@@ -894,7 +894,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		push = arr.push,
 		slice = arr.slice,
 		// Use a stripped-down indexOf as it's faster than native
-		// http://jsperf.com/thor-indexof-vs-for/5
+		// https://jsperf.com/thor-indexof-vs-for/5
 		indexOf = function( list, elem ) {
 			var i = 0,
 				len = list.length;
@@ -910,13 +910,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// Regular expressions
 
-		// http://www.w3.org/TR/css3-selectors/#whitespace
+		// https://www.w3.org/TR/css3-selectors/#whitespace
 		whitespace = "[\\x20\\t\\r\\n\\f]",
 
-		// http://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
+		// https://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
 		identifier = "(?:\\\\.|[\\w-]|[^\\x00-\\xa0])+",
 
-		// Attribute selectors: http://www.w3.org/TR/selectors/#attribute-selectors
+		// Attribute selectors: https://www.w3.org/TR/selectors/#attribute-selectors
 		attributes = "\\[" + whitespace + "*(" + identifier + ")(?:" + whitespace +
 			// Operator (capture 2)
 			"*([*^$|!~]?=)" + whitespace +
@@ -973,7 +973,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		rsibling = /[+~]/,
 		rescape = /'|\\/g,
 
-		// CSS escapes http://www.w3.org/TR/CSS21/syndata.html#escaped-characters
+		// CSS escapes https://www.w3.org/TR/CSS21/syndata.html#escaped-characters
 		runescape = new RegExp( "\\\\([\\da-f]{1,6}" + whitespace + "?|(" + whitespace + ")|.)", "ig" ),
 		funescape = function( _, escaped, escapedWhitespace ) {
 			var high = "0x" + escaped - 0x10000;
@@ -1465,7 +1465,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// We allow this because of a bug in IE8/9 that throws an error
 		// whenever `document.activeElement` is accessed on an iframe
 		// So, we allow :focus to pass through QSA all the time to avoid the IE error
-		// See http://bugs.jquery.com/ticket/13378
+		// See https://bugs.jquery.com/ticket/13378
 		rbuggyQSA = [];
 
 		if ( (support.qsa = rnative.test( document.querySelectorAll )) ) {
@@ -1476,7 +1476,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				// This is to test IE's treatment of not explicitly
 				// setting a boolean content attribute,
 				// since its presence should be enough
-				// http://bugs.jquery.com/ticket/12359
+				// https://bugs.jquery.com/ticket/12359
 				docElem.appendChild( div ).innerHTML = "<a id='" + expando + "'></a>" +
 					"<select id='" + expando + "-\r\\' msallowcapture=''>" +
 					"<option selected=''></option></select>";
@@ -1484,7 +1484,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				// Support: IE8, Opera 11-12.16
 				// Nothing should be selected when empty strings follow ^= or $= or *=
 				// The test attribute must be unknown in Opera but "safe" for WinRT
-				// http://msdn.microsoft.com/en-us/library/ie/hh465388.aspx#attribute_section
+				// https://msdn.microsoft.com/en-us/library/ie/hh465388.aspx#attribute_section
 				if ( div.querySelectorAll("[msallowcapture^='']").length ) {
 					rbuggyQSA.push( "[*^$]=" + whitespace + "*(?:''|\"\")" );
 				}
@@ -1501,7 +1501,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				}
 
 				// Webkit/Opera - :checked should return selected option elements
-				// http://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
+				// https://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
 				// IE8 throws error here and will not see later tests
 				if ( !div.querySelectorAll(":checked").length ) {
 					rbuggyQSA.push(":checked");
@@ -2098,7 +2098,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			"PSEUDO": function( pseudo, argument ) {
 				// pseudo-class names are case-insensitive
-				// http://www.w3.org/TR/selectors/#pseudo-classes
+				// https://www.w3.org/TR/selectors/#pseudo-classes
 				// Prioritize by case sensitivity in case custom pseudos are added with uppercase letters
 				// Remember that setFilters inherits from pseudos
 				var args,
@@ -2185,7 +2185,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			// or beginning with the identifier C immediately followed by "-".
 			// The matching of C against the element's language value is performed case-insensitively.
 			// The identifier C does not have to be a valid language name."
-			// http://www.w3.org/TR/selectors/#lang-pseudo
+			// https://www.w3.org/TR/selectors/#lang-pseudo
 			"lang": markFunction( function( lang ) {
 				// lang value must be a valid identifier
 				if ( !ridentifier.test(lang || "") ) {
@@ -2232,7 +2232,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			"checked": function( elem ) {
 				// In CSS3, :checked should return both checked and selected elements
-				// http://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
+				// https://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
 				var nodeName = elem.nodeName.toLowerCase();
 				return (nodeName === "input" && !!elem.checked) || (nodeName === "option" && !!elem.selected);
 			},
@@ -2249,7 +2249,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			// Contents
 			"empty": function( elem ) {
-				// http://www.w3.org/TR/selectors/#empty-pseudo
+				// https://www.w3.org/TR/selectors/#empty-pseudo
 				// :empty is negated by element (1) or content nodes (text: 3; cdata: 4; entity ref: 5),
 				//   but not by others (comment: 8; processing instruction: 7; etc.)
 				// nodeType < 6 works because attributes (2) do not appear as children
@@ -2923,7 +2923,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	// Support: IE<8
 	// Prevent attribute/property "interpolation"
-	// http://msdn.microsoft.com/en-us/library/ms536429%28VS.85%29.aspx
+	// https://msdn.microsoft.com/en-us/library/ms536429%28VS.85%29.aspx
 	if ( !assert(function( div ) {
 		div.innerHTML = "<a href='#'></a>";
 		return div.firstChild.getAttribute("href") === "#" ;
@@ -5291,7 +5291,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	};
 
 	// jQuery.Event is based on DOM3 Events as specified by the ECMAScript Language Binding
-	// http://www.w3.org/TR/2003/WD-DOM-Level-3-Events-20030331/ecma-script-binding.html
+	// https://www.w3.org/TR/2003/WD-DOM-Level-3-Events-20030331/ecma-script-binding.html
 	jQuery.Event.prototype = {
 		constructor: jQuery.Event,
 		isDefaultPrevented: returnFalse,
@@ -5625,7 +5625,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			if ( !support.noCloneChecked && ( elem.nodeType === 1 || elem.nodeType === 11 ) &&
 					!jQuery.isXMLDoc( elem ) ) {
 
-				// We eschew Sizzle here for performance reasons: http://jsperf.com/getall-vs-sizzle/2
+				// We eschew Sizzle here for performance reasons: https://jsperf.com/getall-vs-sizzle/2
 				destElements = getAll( clone );
 				srcElements = getAll( elem );
 
@@ -6105,7 +6105,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			// Android Browser returns percentage for some values,
 			// but width seems to be reliably pixels.
 			// This is against the CSSOM draft spec:
-			// http://dev.w3.org/csswg/cssom/#resolved-values
+			// https://dev.w3.org/csswg/cssom/#resolved-values
 			if ( !support.pixelMarginRight() && rnumnonpx.test( ret ) && rmargin.test( name ) ) {
 
 				// Remember the original values
@@ -7356,7 +7356,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 
 	// Based off of the plugin by Clint Helfers, with permission.
-	// http://web.archive.org/web/20100324014747/http://blindsignals.com/index.php/2009/07/jquery-delay/
+	// https://web.archive.org/web/20100324014747/https://blindsignals.com/index.php/2009/07/jquery-delay/
 	jQuery.fn.delay = function( time, type ) {
 		time = jQuery.fx ? jQuery.fx.speeds[ time ] || time : time;
 		type = type || "fx";
@@ -7589,7 +7589,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 					// elem.tabIndex doesn't always return the
 					// correct value when it hasn't been explicitly set
-					// http://fluidproject.org/blog/2008/01/09/getting-setting-and-removing-tabindex-values-with-javascript/
+					// https://fluidproject.org/blog/2008/01/09/getting-setting-and-removing-tabindex-values-with-javascript/
 					// Use proper attribute retrieval(#12072)
 					var tabindex = jQuery.find.attr( elem, "tabindex" );
 
@@ -8206,7 +8206,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	//
 	// Support: Chrome, Safari
 	// focus(in | out) events fire after focus & blur events,
-	// which is spec violation - http://www.w3.org/TR/DOM-Level-3-Events/#events-focusevent-event-order
+	// which is spec violation - https://www.w3.org/TR/DOM-Level-3-Events/#events-focusevent-event-order
 	// Related ticket - https://code.google.com/p/chromium/issues/detail?id=449857
 	if ( !support.focusin ) {
 		jQuery.each( { focus: "focusin", blur: "focusout" }, function( orig, fix ) {
@@ -8799,7 +8799,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				urlAnchor = document.createElement( "a" );
 
 				// Support: IE8-11+
-				// IE throws exception if url is malformed, e.g. http://example.com:80x/
+				// IE throws exception if url is malformed, e.g. https://example.com:80x/
 				try {
 					urlAnchor.href = s.url;
 
@@ -9324,7 +9324,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	jQuery.ajaxSettings.xhr = function() {
 		try {
-			return new window.XMLHttpRequest();
+			return new window.XMLhttpsRequest();
 		} catch ( e ) {}
 	};
 
@@ -9345,7 +9345,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	jQuery.ajaxTransport( function( options ) {
 		var callback, errorCallback;
 
-		// Cross domain only allowed if supported through XMLHttpRequest
+		// Cross domain only allowed if supported through XMLhttpsRequest
 		if ( support.cors || xhrSupported && !options.crossDomain ) {
 			return {
 				send: function( headers, complete ) {
@@ -9378,7 +9378,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					// (it can always be set on a per-request basis or even using ajaxSetup)
 					// For same-domain requests, won't change header if already provided.
 					if ( !options.crossDomain && !headers[ "X-Requested-With" ] ) {
-						headers[ "X-Requested-With" ] = "XMLHttpRequest";
+						headers[ "X-Requested-With" ] = "XMLhttpsRequest";
 					}
 
 					// Set headers
@@ -10110,7 +10110,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;//     Underscore.js 1.8.3
-	//     http://underscorejs.org
+	//     https://underscorejs.org
 	//     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 	//     Underscore may be freely distributed under the MIT license.
 
@@ -10241,7 +10241,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // Helper for collection methods to determine whether a collection
 	  // should be iterated as an array or as an object
-	  // Related: http://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength
+	  // Related: https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength
 	  // Avoids a very nasty iOS 8 JIT bug on ARM-64. #2094
 	  var MAX_ARRAY_INDEX = Math.pow(2, 53) - 1;
 	  var getLength = property('length');
@@ -10457,7 +10457,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  };
 
 	  // Shuffle a collection, using the modern version of the
-	  // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
+	  // [Fisher-Yates shuffle](https://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
 	  _.shuffle = function(obj) {
 	    var set = isArrayLike(obj) ? obj : _.values(obj);
 	    var length = set.length;
@@ -10785,7 +10785,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // Generate an integer Array containing an arithmetic progression. A port of
 	  // the native Python `range()` function. See
-	  // [the Python documentation](http://docs.python.org/library/functions.html#range).
+	  // [the Python documentation](https://docs.python.org/library/functions.html#range).
 	  _.range = function(start, stop, step) {
 	    if (stop == null) {
 	      stop = start || 0;
@@ -11205,7 +11205,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Internal recursive comparison function for `isEqual`.
 	  var eq = function(a, b, aStack, bStack) {
 	    // Identical objects are equal. `0 === -0`, but they aren't identical.
-	    // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
+	    // See the [Harmony `egal` proposal](https://wiki.ecmascript.org/doku.php?id=harmony:egal).
 	    if (a === b) return a !== 0 || 1 / a === 1 / b;
 	    // A strict comparison is necessary because `null == undefined`.
 	    if (a == null || b == null) return a === b;
@@ -11664,7 +11664,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
-	 Leaflet 1.0.3, a JS library for interactive maps. http://leafletjs.com
+	 Leaflet 1.0.3, a JS library for interactive maps. https://leafletjs.com
 	 (c) 2010-2016 Vladimir Agafonkin, (c) 2010-2011 CloudMade
 	*/
 	(function (window, document, undefined) {
@@ -11899,7 +11899,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	};
 
 	(function () {
-		// inspired by http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+		// inspired by https://paulirish.com/2011/requestanimationframe-for-smart-animating/
 
 		function getPrefixed(name) {
 			return window['webkit' + name] || window['moz' + name] || window['ms' + name];
@@ -13317,7 +13317,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		},
 
 		// @method distanceTo(otherLatLng: LatLng): Number
-		// Returns the distance (in meters) to the given `LatLng` calculated using the [Haversine formula](http://en.wikipedia.org/wiki/Haversine_formula).
+		// Returns the distance (in meters) to the given `LatLng` calculated using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 		distanceTo: function (other) {
 			return L.CRS.Earth.distance(this, L.latLng(other));
 		},
@@ -13706,7 +13706,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * Abstract class that defines coordinate reference systems for projecting
 	 * geographical points into pixel (screen) coordinates and back (and to
 	 * coordinates in other units for [WMS](https://en.wikipedia.org/wiki/Web_Map_Service) services). See
-	 * [spatial reference system](http://en.wikipedia.org/wiki/Coordinate_reference_system).
+	 * [spatial reference system](https://en.wikipedia.org/wiki/Coordinate_reference_system).
 	 *
 	 * Leaflet defines the most usual CRSs by default. If you want to use a
 	 * CRS not defined by default, take a look at the
@@ -13882,7 +13882,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// Mean Earth Radius, as recommended for use by
 		// the International Union of Geodesy and Geophysics,
-		// see http://rosettacode.org/wiki/Haversine_formula
+		// see https://rosettacode.org/wiki/Haversine_formula
 		R: 6371000,
 
 		// distance between two geographical points using spherical law of cosines approximation
@@ -14499,7 +14499,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// event with location data on success or a [`locationerror`](#map-locationerror) event on failure,
 		// and optionally sets the map view to the user's location with respect to
 		// detection accuracy (or to the world view if geolocation failed).
-		// Note that, if your page doesn't use HTTPS, this method will fail in
+		// Note that, if your page doesn't use https, this method will fail in
 		// modern browsers ([Chrome 50 and newer](https://sites.google.com/a/chromium.org/dev/Home/chromium-security/deprecating-powerful-features-on-insecure-origins))
 		// See `Locate options` for more details.
 		locate: function (options) {
@@ -15190,7 +15190,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			var pos = this._getMapPanePos();
 			if (Math.max(Math.abs(pos.x), Math.abs(pos.y)) >= this.options.transform3DLimit) {
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1203873 but Webkit also have
-				// a pixel offset on very high values, see: http://jsfiddle.net/dg6r5hhb/
+				// a pixel offset on very high values, see: https://jsfiddle.net/dg6r5hhb/
 				this._resetView(this.getCenter(), this.getZoom());
 			}
 		},
@@ -16162,7 +16162,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// @method run(el: HTMLElement, newPos: Point, duration?: Number, easeLinearity?: Number)
 		// Run an animation of a given element to a new position, optionally setting
 		// duration in seconds (`0.25` by default) and easing linearity factor (3rd
-		// argument of the [cubic bezier curve](http://cubic-bezier.com/#0,0,.5,1),
+		// argument of the [cubic bezier curve](https://cubic-bezier.com/#0,0,.5,1),
 		// `0.5` by default).
 		run: function (el, newPos, duration, easeLinearity) {
 			this.stop();
@@ -17181,7 +17181,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * @example
 	 *
 	 * ```js
-	 * L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png?{foo}', {foo: 'bar'}).addTo(map);
+	 * L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png?{foo}', {foo: 'bar'}).addTo(map);
 	 * ```
 	 *
 	 * @section URL template
@@ -17190,7 +17190,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * A string of the following form:
 	 *
 	 * ```
-	 * 'http://{s}.somedomain.com/blabla/{z}/{x}/{y}{r}.png'
+	 * 'https://{s}.somedomain.com/blabla/{z}/{x}/{y}{r}.png'
 	 * ```
 	 *
 	 * `{s}` means one of the available subdomains (used sequentially to help with browser parallel requests per domain limitation; subdomain values are specified in options; `a`, `b` or `c` by default, can be omitted), `{z}` — zoom level, `{x}` and `{y}` — tile coordinates. `{r}` can be used to add @2x to the URL to load retina tiles.
@@ -17198,7 +17198,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * You can use custom keys in the template, which will be [evaluated](#util-template) from TileLayer options, like this:
 	 *
 	 * ```
-	 * L.tileLayer('http://{s}.somedomain.com/{foo}/{z}/{x}/{y}.png', {foo: 'bar'});
+	 * L.tileLayer('https://{s}.somedomain.com/{foo}/{z}/{x}/{y}.png', {foo: 'bar'});
 	 * ```
 	 */
 
@@ -17316,7 +17316,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			/*
 			 Alt tag is set to empty string to keep screen readers from reading URL and for compliance reasons
-			 http://www.w3.org/TR/WCAG20-TECHS/H67
+			 https://www.w3.org/TR/WCAG20-TECHS/H67
 			*/
 			tile.alt = '';
 
@@ -17465,7 +17465,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * @example
 	 *
 	 * ```js
-	 * var nexrad = L.tileLayer.wms("http://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi", {
+	 * var nexrad = L.tileLayer.wms("https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi", {
 	 * 	layers: 'nexrad-n0r-900913',
 	 * 	format: 'image/png',
 	 * 	transparent: true,
@@ -17480,7 +17480,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// @aka TileLayer.WMS options
 		// If any custom options not documented here are used, they will be sent to the
 		// WMS server as extra parameters in each request URL. This can be useful for
-		// [non-standard vendor WMS parameters](http://docs.geoserver.org/stable/en/user/services/wms/vendor.html).
+		// [non-standard vendor WMS parameters](https://docs.geoserver.org/stable/en/user/services/wms/vendor.html).
 		defaultWmsParams: {
 			service: 'WMS',
 			request: 'GetMap',
@@ -17598,7 +17598,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * @example
 	 *
 	 * ```js
-	 * var imageUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg',
+	 * var imageUrl = 'https://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg',
 	 * 	imageBounds = [[40.712216, -74.22655], [40.773941, -74.12544]];
 	 * L.imageOverlay(imageUrl, imageBounds).addTo(map);
 	 * ```
@@ -20105,11 +20105,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// @function simplify(points: Point[], tolerance: Number): Point[]
 		// Dramatically reduces the number of points in a polyline while retaining
 		// its shape and returns a new array of simplified points, using the
-		// [Douglas-Peucker algorithm](http://en.wikipedia.org/wiki/Douglas-Peucker_algorithm).
+		// [Douglas-Peucker algorithm](https://en.wikipedia.org/wiki/Douglas-Peucker_algorithm).
 		// Used for a huge performance boost when processing/displaying Leaflet polylines for
 		// each zoom level and also reducing visual noise. tolerance affects the amount of
 		// simplification (lesser value means higher quality but slower and with more points).
-		// Also released as a separated micro-library [Simplify.js](http://mourner.github.com/simplify-js/).
+		// Also released as a separated micro-library [Simplify.js](https://mourner.github.com/simplify-js/).
 		simplify: function (points, tolerance) {
 			if (!tolerance || !points.length) {
 				return points.slice();
@@ -20138,7 +20138,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			return this._sqClosestPointOnSegment(p, p1, p2);
 		},
 
-		// Douglas-Peucker simplification, see http://en.wikipedia.org/wiki/Douglas-Peucker_algorithm
+		// Douglas-Peucker simplification, see https://en.wikipedia.org/wiki/Douglas-Peucker_algorithm
 		_simplifyDP: function (points, sqTolerance) {
 
 			var len = points.length,
@@ -20427,7 +20427,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		},
 
 		// @method getCenter(): LatLng
-		// Returns the center ([centroid](http://en.wikipedia.org/wiki/Centroid)) of the polyline.
+		// Returns the center ([centroid](https://en.wikipedia.org/wiki/Centroid)) of the polyline.
 		getCenter: function () {
 			// throws error when not yet added to map as this center calculation requires projected coordinates
 			if (!this._map) {
@@ -21105,7 +21105,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * Allows vector layers to be displayed with [SVG](https://developer.mozilla.org/docs/Web/SVG).
 	 * Inherits `Renderer`.
 	 *
-	 * Due to [technical limitations](http://caniuse.com/#search=svg), SVG is not
+	 * Due to [technical limitations](https://caniuse.com/#search=svg), SVG is not
 	 * available in all web browsers, notably Android 2.x and 3.x.
 	 *
 	 * Although SVG is not available on IE7 and IE8, these browsers support
@@ -21296,7 +21296,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// corresponding to the class name passed. For example, using 'line' will return
 		// an instance of [SVGLineElement](https://developer.mozilla.org/docs/Web/API/SVGLineElement).
 		create: function (name) {
-			return document.createElementNS('http://www.w3.org/2000/svg', name);
+			return document.createElementNS('https://www.w3.org/2000/svg', name);
 		},
 
 		// @function pointsToPath(rings: Point[], closed: Boolean): String
@@ -21504,7 +21504,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * Allows vector layers to be displayed with [`<canvas>`](https://developer.mozilla.org/docs/Web/API/Canvas_API).
 	 * Inherits `Renderer`.
 	 *
-	 * Due to [technical limitations](http://caniuse.com/#search=canvas), Canvas is not
+	 * Due to [technical limitations](https://caniuse.com/#search=canvas), Canvas is not
 	 * available in all web browsers, notably IE8, and overlapping geometries might
 	 * not display properly in some edge cases.
 	 *
@@ -22295,19 +22295,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	// @namespace Marker
 	// @method toGeoJSON(): Object
-	// Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the marker (as a GeoJSON `Point` Feature).
+	// Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the marker (as a GeoJSON `Point` Feature).
 	L.Marker.include(PointToGeoJSON);
 
 	// @namespace CircleMarker
 	// @method toGeoJSON(): Object
-	// Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the circle marker (as a GeoJSON `Point` Feature).
+	// Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the circle marker (as a GeoJSON `Point` Feature).
 	L.Circle.include(PointToGeoJSON);
 	L.CircleMarker.include(PointToGeoJSON);
 
 
 	// @namespace Polyline
 	// @method toGeoJSON(): Object
-	// Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the polyline (as a GeoJSON `LineString` or `MultiLineString` Feature).
+	// Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the polyline (as a GeoJSON `LineString` or `MultiLineString` Feature).
 	L.Polyline.prototype.toGeoJSON = function () {
 		var multi = !L.Polyline._flat(this._latlngs);
 
@@ -22321,7 +22321,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	// @namespace Polygon
 	// @method toGeoJSON(): Object
-	// Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the polygon (as a GeoJSON `Polygon` or `MultiPolygon` Feature).
+	// Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the polygon (as a GeoJSON `Polygon` or `MultiPolygon` Feature).
 	L.Polygon.prototype.toGeoJSON = function () {
 		var holes = !L.Polyline._flat(this._latlngs),
 		    multi = holes && !L.Polyline._flat(this._latlngs[0]);
@@ -22355,7 +22355,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		},
 
 		// @method toGeoJSON(): Object
-		// Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the layer group (as a GeoJSON `GeometryCollection`).
+		// Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the layer group (as a GeoJSON `GeometryCollection`).
 		toGeoJSON: function () {
 
 			var type = this.feature && this.feature.geometry && this.feature.geometry.type;
@@ -22391,7 +22391,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	// @namespace GeoJSON
 	// @factory L.geoJSON(geojson?: Object, options?: GeoJSON options)
 	// Creates a GeoJSON layer. Optionally accepts an object in
-	// [GeoJSON format](http://geojson.org/geojson-spec.html) to display on the map
+	// [GeoJSON format](https://geojson.org/geojson-spec.html) to display on the map
 	// (you can alternatively add it later with `addData` method) and an `options` object.
 	L.geoJSON = function (geojson, options) {
 		return new L.GeoJSON(geojson, options);
@@ -23156,7 +23156,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		_pointersCount: 0,
 
 		// Provides a touch events wrapper for (ms)pointer events.
-		// ref http://www.w3.org/TR/pointerevents/ https://www.w3.org/Bugs/Public/show_bug.cgi?id=22890
+		// ref https://www.w3.org/TR/pointerevents/ https://www.w3.org/Bugs/Public/show_bug.cgi?id=22890
 
 		addPointerListener: function (obj, type, handler, id) {
 
@@ -24258,7 +24258,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			// @option prefix: String = 'Leaflet'
 			// The HTML text shown before the attributions. Pass `false` to disable.
-			prefix: '<a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>'
+			prefix: '<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>'
 		},
 
 		initialize: function (options) {
@@ -24505,7 +24505,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * @aka L.Control.Layers
 	 * @inherits Control
 	 *
-	 * The layers control gives users the ability to switch between different base layers and switch overlays on/off (check out the [detailed example](http://leafletjs.com/examples/layers-control.html)). Extends `Control`.
+	 * The layers control gives users the ability to switch between different base layers and switch overlays on/off (check out the [detailed example](https://leafletjs.com/examples/layers-control.html)). Extends `Control`.
 	 *
 	 * @example
 	 *
@@ -24794,7 +24794,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			}
 		},
 
-		// IE7 bugs out if you create a radio dynamically, so you have to do it this hacky way (see http://bit.ly/PqYLBe)
+		// IE7 bugs out if you create a radio dynamically, so you have to do it this hacky way (see https://bit.ly/PqYLBe)
 		_createRadioElement: function (name, checked) {
 
 			var radioHtml = '<input type="radio" class="leaflet-control-layers-selector" name="' +
@@ -25298,7 +25298,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	            this.data = data;
 	            if (this.data && this.data.length > 0) {
 	                arrayUtils.forEach(this.data, function (element) {
-	                    console.log(element);
+	                    //console.log(element);
 	                    var arc = new Arc({
 	                        startX: element.from[0],
 	                        startY: element.from[1],

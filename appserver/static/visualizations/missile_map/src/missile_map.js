@@ -15,33 +15,33 @@ define([
             L,
             SplunkVisualizationBase,
             vizUtils
-        ) {    
+        ) {
 
         var TILE_PRESETS = {
             'satellite_tiles': {
                 minZoom: 1,
                 maxZoom: 19,
-                url: 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                 attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             },
             'openstreetmap_tiles': {
                 minZoom: 1,
                 maxZoom: 19,
-                url: 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            
+                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
             },
             'light_tiles': {
                 minZoom: 1,
                 maxZoom: 19,
-                url: 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
-            }, 
+                url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
+            },
             'dark_tiles': {
                 minZoom: 1,
                 maxZoom: 19,
-                url: 'http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
             },
             'splunk': {
                 minZoom: 1,
@@ -62,13 +62,13 @@ define([
             this.isInitializedDom = false;
         },
 
-        // Optionally implement to format data returned from search. 
+        // Optionally implement to format data returned from search.
         // The returned object will be passed to updateView as 'data'
         formatData: function(data) {
 
             return data;
         },
-  
+
         // Implement updateView to render a visualization.
         //  'data' will be the data object returned from formatData or from the search
         //  'config' will be the configuration property object
@@ -113,7 +113,7 @@ define([
                 var migrationLayer = this.migrationLayer = new L.migrationLayer({map: map, arcWidth: lineThickness});
                 migrationLayer.addTo(map);
 
-    			this.isInitializedDom = true;         
+    			this.isInitializedDom = true;
     		} else {
                 if (updateTiles || updateLineWidth || updateBounds) {
 
