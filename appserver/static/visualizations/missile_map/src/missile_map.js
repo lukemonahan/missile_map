@@ -102,9 +102,10 @@ define([
             var staticColor = this._getEscapedProperty('staticColor', config) || "#65a637";
             var lineThickness = parseInt(this._getEscapedProperty('lineThickness', config) || 1);
             var updateLineWidth = lineThickness != this.activeLineThickness;
+	    var scrollWheelZoom = Splunk.util.normalizeBoolean(this._getEscapedProperty('scrollWheelZoom', config) || true)
 
     		if (!this.isInitializedDom) {
-                var map = this.map = L.map(this.el, { zoomSnap: 0.1 }).setView([lat, lon], zoom);
+                var map = this.map = L.map(this.el, { zoomSnap: 0.1, scrollWheelZoom: scrollWheelZoom }).setView([lat, lon], zoom);
 
                 this.tileLayer = L.tileLayer(url, {
                     attribution: attribution
