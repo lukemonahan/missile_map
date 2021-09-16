@@ -1,3 +1,4 @@
+[<stanza name>]
 display.visualizations.custom.missile_map.missile_map.tileSet = <string>
 display.visualizations.custom.missile_map.missile_map.customTileSet = <string>
 display.visualizations.custom.missile_map.missile_map.staticColor = <string>
