@@ -25,6 +25,8 @@ The visualisation looks for fields of the following names:
   * animate: Whether to animate this arc (optional, default "false")
   * pulse_at_start: When animated, set to true to cause the pulse to be at the start of the arc instead of the end (optional, default "false")
   * weight: The line weight of the arc (optional, default 1).
+  * start_label: A label to put at the start of the arc
+  * end_label: A label to put at the end of the arc
 
  The fields must be named in this way, but they are not order dependent.
 

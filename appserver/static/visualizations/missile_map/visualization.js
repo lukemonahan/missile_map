@@ -230,6 +230,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                    case "weight":
 	                        var weight_idx = i;
 	                        break;
+	                    case "start_label":
+	                        var start_label_idx = i;
+	                        break;
+	                    case "end_label":
+	                        var end_label_idx = i;
+	                        break;
 	                }
 	            }
 
@@ -244,14 +250,34 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                var animate = vizUtils.normalizeBoolean(d[animate_idx]);
 	                var pulse_at_start = vizUtils.normalizeBoolean(d[pulse_idx]);
 	                var weight = +d[weight_idx];
+	                var start_label = d[start_label_idx];
+	                var end_label = d[end_label_idx];
 
 	                if (animate) animated = true; // Global flag to run (or not) the animation loop
 
 	                if (!color) color = staticColor;
 	                if (!weight) weight = lineThickness;
 
-	                return {
-	                    "from":[start_lon, start_lat], "to":[end_lon, end_lat], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
+
+	                if( start_label_idx && end_label_idx ){
+	                    return {
+	                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "labels":[start_label, end_label], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
+	                    }
+	                }
+	                else if( start_label_idx ){
+	                    return {
+	                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "labels":[start_label, ""], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
+	                    }
+	                }
+	                else if( end_label_idx ){
+	                    return {
+	                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "labels":["", end_label], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
+	                    }
+	                }
+	                else{
+	                    return {
+	                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
+	                    }
 	                }
 	            });
 
