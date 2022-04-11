@@ -1,5 +1,5 @@
 []
-access = read : [ * ], write : [ admin, power ]
+access = read : [ * ], write : [ sc_admin, admin, power ]
 
 [visualizations/missile_map]
 export = system
