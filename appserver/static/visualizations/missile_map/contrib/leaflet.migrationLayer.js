@@ -1,4 +1,4 @@
-(function (window) {
+(function (window, L) {
     var utils = {
         // color:rgb或rgba格式
         // opacity: 透明度
@@ -625,4 +625,4 @@
     L.migrationLayer = function (options) {
         return new L.MigrationLayer(options)
     }
-})(window)
+})(window, L)

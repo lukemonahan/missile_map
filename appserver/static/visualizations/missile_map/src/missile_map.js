@@ -7,7 +7,7 @@ define([
         'leaflet',
         'api/SplunkVisualizationBase',
         'api/SplunkVisualizationUtils',
-	    '../contrib/leaflet.migrationLayer'
+        '../contrib/leaflet.migrationLayer'
         ],
         function(
             $,
