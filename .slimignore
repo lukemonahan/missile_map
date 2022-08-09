@@ -7,3 +7,6 @@ Thumbs.db
 .git
 .git/*
 .gitignore
+.slimignore
+node_modules/*
+node_modules
