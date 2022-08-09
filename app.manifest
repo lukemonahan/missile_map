@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "2.0.0",
+  "info": {
+    "title": "Missile Map",
+    "id": {
+      "group": null,
+      "name": "missile_map",
+      "version": "1.5.1"
+    },
+    "author": [
+      {
+        "name": "Luke Monahan <luke.monahan@tesserent.com>",
+        "email": null,
+        "company": null
+      }
+    ],
+    "releaseDate": null,
+    "description": "A custom visualisation to display points connected by arcs on a map. Arcs can be coloured and animated.",
+    "classification": {
+      "intendedAudience": null,
+      "categories": [],
+      "developmentStatus": null
+    },
+    "commonInformationModels": null,
+    "license": {
+      "name": null,
+      "text": null,
+      "uri": null
+    },
+    "privacyPolicy": {
+      "name": null,
+      "text": null,
+      "uri": null
+    },
+    "releaseNotes": {
+      "name": null,
+      "text": "./README.md",
+      "uri": null
+    }
+  },
+  "dependencies": null,
+  "tasks": null,
+  "inputGroups": null,
+  "incompatibleApps": null,
+  "platformRequirements": null,
+  "supportedDeployments": [
+    "_standalone",
+    "_distributed"
+  ],
+  "targetWorkloads": [ "_search_heads" ]
+}
