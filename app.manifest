@@ -43,9 +43,6 @@
   "inputGroups": null,
   "incompatibleApps": null,
   "platformRequirements": null,
-  "supportedDeployments": [
-    "_standalone",
-    "_distributed"
-  ],
+  "supportedDeployments": [ "*" ],
   "targetWorkloads": [ "_search_heads" ]
 }
