@@ -47,6 +47,11 @@ define([
                 minZoom: 1,
                 maxZoom: 19,
                 url: '/splunkd/__raw/services/mbtiles/splunk-tiles/{z}/{x}/{y}'
+            },
+            'splunk_dark': {
+                minZoom: 1,
+                maxZoom: 19,
+                url: '/splunkd/__raw/services/mbtiles/splunk-tiles-dark/{z}/{x}/{y}'
             }
          };
 

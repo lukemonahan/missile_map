@@ -92,6 +92,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                minZoom: 1,
 	                maxZoom: 19,
 	                url: '/splunkd/__raw/services/mbtiles/splunk-tiles/{z}/{x}/{y}'
+	            },
+	            'splunk_dark': {
+	                minZoom: 1,
+	                maxZoom: 19,
+	                url: '/splunkd/__raw/services/mbtiles/splunk-tiles-dark/{z}/{x}/{y}'
 	            }
 	         };
 
@@ -317,17 +322,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
-	 * jQuery JavaScript Library v3.6.0
+	 * jQuery JavaScript Library v3.7.1
 	 * https://jquery.com/
-	 *
-	 * Includes Sizzle.js
-	 * https://sizzlejs.com/
 	 *
 	 * Copyright OpenJS Foundation and other contributors
 	 * Released under the MIT license
 	 * https://jquery.org/license
 	 *
-	 * Date: 2021-03-02T17:08Z
+	 * Date: 2023-08-28T13:37Z
 	 */
 	( function( global, factory ) {
 
@@ -341,7 +343,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			// (such as Node.js), expose a factory as module.exports.
 			// This accentuates the need for the creation of a real `window`.
 			// e.g. var jQuery = require("jquery")(window);
-			// See ticket #14549 for more info.
+			// See ticket trac-14549 for more info.
 			module.exports = global.document ?
 				factory( global, true ) :
 				function( w ) {
@@ -468,8 +470,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 
 
-	var
-		version = "3.6.0",
+	var version = "3.7.1",
+
+		rhtmlSuffix = /HTML$/i,
 
 		// Define a local copy of jQuery
 		jQuery = function( selector, context ) {
@@ -715,6 +718,38 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			return obj;
 		},
 
+
+		// Retrieve the text value of an array of DOM nodes
+		text: function( elem ) {
+			var node,
+				ret = "",
+				i = 0,
+				nodeType = elem.nodeType;
+
+			if ( !nodeType ) {
+
+				// If no nodeType, this is expected to be an array
+				while ( ( node = elem[ i++ ] ) ) {
+
+					// Do not traverse comment nodes
+					ret += jQuery.text( node );
+				}
+			}
+			if ( nodeType === 1 || nodeType === 11 ) {
+				return elem.textContent;
+			}
+			if ( nodeType === 9 ) {
+				return elem.documentElement.textContent;
+			}
+			if ( nodeType === 3 || nodeType === 4 ) {
+				return elem.nodeValue;
+			}
+
+			// Do not include comment or processing instruction nodes
+
+			return ret;
+		},
+
 		// results is for internal usage only
 		makeArray: function( arr, results ) {
 			var ret = results || [];
@@ -735,6 +770,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		inArray: function( elem, arr, i ) {
 			return arr == null ? -1 : indexOf.call( arr, elem, i );
+		},
+
+		isXMLDoc: function( elem ) {
+			var namespace = elem && elem.namespaceURI,
+				docElem = elem && ( elem.ownerDocument || elem ).documentElement;
+
+			// Assume HTML when documentElement doesn't yet exist, such as inside
+			// document fragments.
+			return !rhtmlSuffix.test( namespace || docElem && docElem.nodeName || "HTML" );
 		},
 
 		// Support: Android <=4.0 only, PhantomJS 1 only
@@ -838,43 +882,98 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		return type === "array" || length === 0 ||
 			typeof length === "number" && length > 0 && ( length - 1 ) in obj;
 	}
-	var Sizzle =
-	/*!
-	 * Sizzle CSS Selector Engine v2.3.6
-	 * https://sizzlejs.com/
-	 *
-	 * Copyright JS Foundation and other contributors
-	 * Released under the MIT license
-	 * https://js.foundation/
-	 *
-	 * Date: 2021-02-16
-	 */
-	( function( window ) {
+
+
+	function nodeName( elem, name ) {
+
+		return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
+
+	}
+	var pop = arr.pop;
+
+
+	var sort = arr.sort;
+
+
+	var splice = arr.splice;
+
+
+	var whitespace = "[\\x20\\t\\r\\n\\f]";
+
+
+	var rtrimCSS = new RegExp(
+		"^" + whitespace + "+|((?:^|[^\\\\])(?:\\\\.)*)" + whitespace + "+$",
+		"g"
+	);
+
+
+
+
+	// Note: an element does not contain itself
+	jQuery.contains = function( a, b ) {
+		var bup = b && b.parentNode;
+
+		return a === bup || !!( bup && bup.nodeType === 1 && (
+
+			// Support: IE 9 - 11+
+			// IE doesn't have `contains` on SVG.
+			a.contains ?
+				a.contains( bup ) :
+				a.compareDocumentPosition && a.compareDocumentPosition( bup ) & 16
+		) );
+	};
+
+
+
+
+	// CSS string/identifier serialization
+	// https://drafts.csswg.org/cssom/#common-serializing-idioms
+	var rcssescape = /([\0-\x1f\x7f]|^-?\d)|^-$|[^\x80-\uFFFF\w-]/g;
+
+	function fcssescape( ch, asCodePoint ) {
+		if ( asCodePoint ) {
+
+			// U+0000 NULL becomes U+FFFD REPLACEMENT CHARACTER
+			if ( ch === "\0" ) {
+				return "\uFFFD";
+			}
+
+			// Control characters and (dependent upon position) numbers get escaped as code points
+			return ch.slice( 0, -1 ) + "\\" + ch.charCodeAt( ch.length - 1 ).toString( 16 ) + " ";
+		}
+
+		// Other potentially-special ASCII characters get backslash-escaped
+		return "\\" + ch;
+	}
+
+	jQuery.escapeSelector = function( sel ) {
+		return ( sel + "" ).replace( rcssescape, fcssescape );
+	};
+
+
+
+
+	var preferredDoc = document,
+		pushNative = push;
+
+	( function() {
+
 	var i,
-		support,
 		Expr,
-		getText,
-		isXML,
-		tokenize,
-		compile,
-		select,
 		outermostContext,
 		sortInput,
 		hasDuplicate,
+		push = pushNative,
 
 		// Local document vars
-		setDocument,
 		document,
-		docElem,
+		documentElement,
 		documentIsHTML,
 		rbuggyQSA,
-		rbuggyMatches,
 		matches,
-		contains,
 
 		// Instance-specific data
-		expando = "sizzle" + 1 * new Date(),
-		preferredDoc = window.document,
+		expando = jQuery.expando,
 		dirruns = 0,
 		done = 0,
 		classCache = createCache(),
@@ -888,47 +987,22 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			return 0;
 		},
 
-		// Instance methods
-		hasOwn = ( {} ).hasOwnProperty,
-		arr = [],
-		pop = arr.pop,
-		pushNative = arr.push,
-		push = arr.push,
-		slice = arr.slice,
-
-		// Use a stripped-down indexOf as it's faster than native
-		// https://jsperf.com/thor-indexof-vs-for/5
-		indexOf = function( list, elem ) {
-			var i = 0,
-				len = list.length;
-			for ( ; i < len; i++ ) {
-				if ( list[ i ] === elem ) {
-					return i;
-				}
-			}
-			return -1;
-		},
-
-		booleans = "checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|" +
-			"ismap|loop|multiple|open|readonly|required|scoped",
+		booleans = "checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|ismap|" +
+			"loop|multiple|open|readonly|required|scoped",
 
 		// Regular expressions
-
-		// http://www.w3.org/TR/css3-selectors/#whitespace
-		whitespace = "[\\x20\\t\\r\\n\\f]",
 
 		// https://www.w3.org/TR/css-syntax-3/#ident-token-diagram
 		identifier = "(?:\\\\[\\da-fA-F]{1,6}" + whitespace +
 			"?|\\\\[^\\r\\n\\f]|[\\w-]|[^\0-\\x7f])+",
 
-		// Attribute selectors: http://www.w3.org/TR/selectors/#attribute-selectors
+		// Attribute selectors: https://www.w3.org/TR/selectors/#attribute-selectors
 		attributes = "\\[" + whitespace + "*(" + identifier + ")(?:" + whitespace +
 
 			// Operator (capture 2)
 			"*([*^$|!~]?=)" + whitespace +
 
-			// "Attribute values must be CSS identifiers [capture 5]
-			// or strings [capture 3 or capture 4]"
+			// "Attribute values must be CSS identifiers [capture 5] or strings [capture 3 or capture 4]"
 			"*(?:'((?:\\\\.|[^\\\\'])*)'|\"((?:\\\\.|[^\\\\\"])*)\"|(" + identifier + "))|)" +
 			whitespace + "*\\]",
 
@@ -947,40 +1021,36 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// Leading and non-escaped trailing whitespace, capturing some non-whitespace characters preceding the latter
 		rwhitespace = new RegExp( whitespace + "+", "g" ),
-		rtrim = new RegExp( "^" + whitespace + "+|((?:^|[^\\\\])(?:\\\\.)*)" +
-			whitespace + "+$", "g" ),
 
 		rcomma = new RegExp( "^" + whitespace + "*," + whitespace + "*" ),
-		rcombinators = new RegExp( "^" + whitespace + "*([>+~]|" + whitespace + ")" + whitespace +
-			"*" ),
+		rleadingCombinator = new RegExp( "^" + whitespace + "*([>+~]|" + whitespace + ")" +
+			whitespace + "*" ),
 		rdescend = new RegExp( whitespace + "|>" ),
 
 		rpseudo = new RegExp( pseudos ),
 		ridentifier = new RegExp( "^" + identifier + "$" ),
 
 		matchExpr = {
-			"ID": new RegExp( "^#(" + identifier + ")" ),
-			"CLASS": new RegExp( "^\\.(" + identifier + ")" ),
-			"TAG": new RegExp( "^(" + identifier + "|[*])" ),
-			"ATTR": new RegExp( "^" + attributes ),
-			"PSEUDO": new RegExp( "^" + pseudos ),
-			"CHILD": new RegExp( "^:(only|first|last|nth|nth-last)-(child|of-type)(?:\\(" +
-				whitespace + "*(even|odd|(([+-]|)(\\d*)n|)" + whitespace + "*(?:([+-]|)" +
-				whitespace + "*(\\d+)|))" + whitespace + "*\\)|)", "i" ),
-			"bool": new RegExp( "^(?:" + booleans + ")$", "i" ),
+			ID: new RegExp( "^#(" + identifier + ")" ),
+			CLASS: new RegExp( "^\\.(" + identifier + ")" ),
+			TAG: new RegExp( "^(" + identifier + "|[*])" ),
+			ATTR: new RegExp( "^" + attributes ),
+			PSEUDO: new RegExp( "^" + pseudos ),
+			CHILD: new RegExp(
+				"^:(only|first|last|nth|nth-last)-(child|of-type)(?:\\(" +
+					whitespace + "*(even|odd|(([+-]|)(\\d*)n|)" + whitespace + "*(?:([+-]|)" +
+					whitespace + "*(\\d+)|))" + whitespace + "*\\)|)", "i" ),
+			bool: new RegExp( "^(?:" + booleans + ")$", "i" ),
 
 			// For use in libraries implementing .is()
 			// We use this for POS matching in `select`
-			"needsContext": new RegExp( "^" + whitespace +
+			needsContext: new RegExp( "^" + whitespace +
 				"*[>+~]|:(even|odd|eq|gt|lt|nth|first|last)(?:\\(" + whitespace +
 				"*((?:-\\d)?\\d*)" + whitespace + "*\\)|)(?=[^-]|$)", "i" )
 		},
 
-		rhtml = /HTML$/i,
 		rinputs = /^(?:input|select|textarea|button)$/i,
 		rheader = /^h\d$/i,
-
-		rnative = /^[^{]+\{\s*\[native \w/,
 
 		// Easily-parseable/retrievable ID or TAG or CLASS selectors
 		rquickExpr = /^(?:#([\w-]+)|(\w+)|\.([\w-]+))$/,
@@ -988,59 +1058,50 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		rsibling = /[+~]/,
 
 		// CSS escapes
-		// http://www.w3.org/TR/CSS21/syndata.html#escaped-characters
-		runescape = new RegExp( "\\\\[\\da-fA-F]{1,6}" + whitespace + "?|\\\\([^\\r\\n\\f])", "g" ),
+		// https://www.w3.org/TR/CSS21/syndata.html#escaped-characters
+		runescape = new RegExp( "\\\\[\\da-fA-F]{1,6}" + whitespace +
+			"?|\\\\([^\\r\\n\\f])", "g" ),
 		funescape = function( escape, nonHex ) {
 			var high = "0x" + escape.slice( 1 ) - 0x10000;
 
-			return nonHex ?
+			if ( nonHex ) {
 
 				// Strip the backslash prefix from a non-hex escape sequence
-				nonHex :
-
-				// Replace a hexadecimal escape sequence with the encoded Unicode code point
-				// Support: IE <=11+
-				// For values outside the Basic Multilingual Plane (BMP), manually construct a
-				// surrogate pair
-				high < 0 ?
-					String.fromCharCode( high + 0x10000 ) :
-					String.fromCharCode( high >> 10 | 0xD800, high & 0x3FF | 0xDC00 );
-		},
-
-		// CSS string/identifier serialization
-		// https://drafts.csswg.org/cssom/#common-serializing-idioms
-		rcssescape = /([\0-\x1f\x7f]|^-?\d)|^-$|[^\0-\x1f\x7f-\uFFFF\w-]/g,
-		fcssescape = function( ch, asCodePoint ) {
-			if ( asCodePoint ) {
-
-				// U+0000 NULL becomes U+FFFD REPLACEMENT CHARACTER
-				if ( ch === "\0" ) {
-					return "\uFFFD";
-				}
-
-				// Control characters and (dependent upon position) numbers get escaped as code points
-				return ch.slice( 0, -1 ) + "\\" +
-					ch.charCodeAt( ch.length - 1 ).toString( 16 ) + " ";
+				return nonHex;
 			}
 
-			// Other potentially-special ASCII characters get backslash-escaped
-			return "\\" + ch;
+			// Replace a hexadecimal escape sequence with the encoded Unicode code point
+			// Support: IE <=11+
+			// For values outside the Basic Multilingual Plane (BMP), manually construct a
+			// surrogate pair
+			return high < 0 ?
+				String.fromCharCode( high + 0x10000 ) :
+				String.fromCharCode( high >> 10 | 0xD800, high & 0x3FF | 0xDC00 );
 		},
 
-		// Used for iframes
-		// See setDocument()
+		// Used for iframes; see `setDocument`.
+		// Support: IE 9 - 11+, Edge 12 - 18+
 		// Removing the function wrapper causes a "Permission Denied"
-		// error in IE
+		// error in IE/Edge.
 		unloadHandler = function() {
 			setDocument();
 		},
 
 		inDisabledFieldset = addCombinator(
 			function( elem ) {
-				return elem.disabled === true && elem.nodeName.toLowerCase() === "fieldset";
+				return elem.disabled === true && nodeName( elem, "fieldset" );
 			},
 			{ dir: "parentNode", next: "legend" }
 		);
+
+	// Support: IE <=9 only
+	// Accessing document.activeElement can throw unexpectedly
+	// https://bugs.jquery.com/ticket/13393
+	function safeActiveElement() {
+		try {
+			return document.activeElement;
+		} catch ( err ) { }
+	}
 
 	// Optimize for push.apply( _, NodeList )
 	try {
@@ -1049,32 +1110,22 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			preferredDoc.childNodes
 		);
 
-		// Support: Android<4.0
+		// Support: Android <=4.0
 		// Detect silently failing push.apply
 		// eslint-disable-next-line no-unused-expressions
 		arr[ preferredDoc.childNodes.length ].nodeType;
 	} catch ( e ) {
-		push = { apply: arr.length ?
-
-			// Leverage slice if possible
-			function( target, els ) {
+		push = {
+			apply: function( target, els ) {
 				pushNative.apply( target, slice.call( els ) );
-			} :
-
-			// Support: IE<9
-			// Otherwise append directly
-			function( target, els ) {
-				var j = target.length,
-					i = 0;
-
-				// Can't trust NodeList.length
-				while ( ( target[ j++ ] = els[ i++ ] ) ) {}
-				target.length = j - 1;
+			},
+			call: function( target ) {
+				pushNative.apply( target, slice.call( arguments, 1 ) );
 			}
 		};
 	}
 
-	function Sizzle( selector, context, results, seed ) {
+	function find( selector, context, results, seed ) {
 		var m, i, elem, nid, match, groups, newSelector,
 			newContext = context && context.ownerDocument,
 
@@ -1108,11 +1159,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						if ( nodeType === 9 ) {
 							if ( ( elem = context.getElementById( m ) ) ) {
 
-								// Support: IE, Opera, Webkit
-								// TODO: identify versions
+								// Support: IE 9 only
 								// getElementById can match elements by name instead of ID
 								if ( elem.id === m ) {
-									results.push( elem );
+									push.call( results, elem );
 									return results;
 								}
 							} else {
@@ -1122,14 +1172,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						// Element context
 						} else {
 
-							// Support: IE, Opera, Webkit
-							// TODO: identify versions
+							// Support: IE 9 only
 							// getElementById can match elements by name instead of ID
 							if ( newContext && ( elem = newContext.getElementById( m ) ) &&
-								contains( context, elem ) &&
+								find.contains( context, elem ) &&
 								elem.id === m ) {
 
-								results.push( elem );
+								push.call( results, elem );
 								return results;
 							}
 						}
@@ -1140,22 +1189,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						return results;
 
 					// Class selector
-					} else if ( ( m = match[ 3 ] ) && support.getElementsByClassName &&
-						context.getElementsByClassName ) {
-
+					} else if ( ( m = match[ 3 ] ) && context.getElementsByClassName ) {
 						push.apply( results, context.getElementsByClassName( m ) );
 						return results;
 					}
 				}
 
 				// Take advantage of querySelectorAll
-				if ( support.qsa &&
-					!nonnativeSelectorCache[ selector + " " ] &&
-					( !rbuggyQSA || !rbuggyQSA.test( selector ) ) &&
-
-					// Support: IE 8 only
-					// Exclude object elements
-					( nodeType !== 1 || context.nodeName.toLowerCase() !== "object" ) ) {
+				if ( !nonnativeSelectorCache[ selector + " " ] &&
+					( !rbuggyQSA || !rbuggyQSA.test( selector ) ) ) {
 
 					newSelector = selector;
 					newContext = context;
@@ -1168,7 +1210,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					// as such selectors are not recognized by querySelectorAll.
 					// Thanks to Andrew Dupont for this technique.
 					if ( nodeType === 1 &&
-						( rdescend.test( selector ) || rcombinators.test( selector ) ) ) {
+						( rdescend.test( selector ) || rleadingCombinator.test( selector ) ) ) {
 
 						// Expand context for sibling selectors
 						newContext = rsibling.test( selector ) && testContext( context.parentNode ) ||
@@ -1176,11 +1218,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 						// We can use :scope instead of the ID hack if the browser
 						// supports it & if we're not changing the context.
-						if ( newContext !== context || !support.scope ) {
+						// Support: IE 11+, Edge 17 - 18+
+						// IE/Edge sometimes throw a "Permission denied" error when
+						// strict-comparing two documents; shallow comparisons work.
+						// eslint-disable-next-line eqeqeq
+						if ( newContext != context || !support.scope ) {
 
 							// Capture the context ID, setting it first if necessary
 							if ( ( nid = context.getAttribute( "id" ) ) ) {
-								nid = nid.replace( rcssescape, fcssescape );
+								nid = jQuery.escapeSelector( nid );
 							} else {
 								context.setAttribute( "id", ( nid = expando ) );
 							}
@@ -1213,7 +1259,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		}
 
 		// All others
-		return select( selector.replace( rtrim, "$1" ), context, results, seed );
+		return select( selector.replace( rtrimCSS, "$1" ), context, results, seed );
 	}
 
 	/**
@@ -1227,7 +1273,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		function cache( key, value ) {
 
-			// Use (key + " ") to avoid collision with native prototype properties (see Issue #157)
+			// Use (key + " ") to avoid collision with native prototype properties
+			// (see https://github.com/jquery/sizzle/issues/157)
 			if ( keys.push( key + " " ) > Expr.cacheLength ) {
 
 				// Only keep the most recent entries
@@ -1239,7 +1286,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	}
 
 	/**
-	 * Mark a function for special use by Sizzle
+	 * Mark a function for special use by jQuery selector module
 	 * @param {Function} fn The function to mark
 	 */
 	function markFunction( fn ) {
@@ -1271,55 +1318,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	}
 
 	/**
-	 * Adds the same handler for all of the specified attrs
-	 * @param {String} attrs Pipe-separated list of attributes
-	 * @param {Function} handler The method that will be applied
-	 */
-	function addHandle( attrs, handler ) {
-		var arr = attrs.split( "|" ),
-			i = arr.length;
-
-		while ( i-- ) {
-			Expr.attrHandle[ arr[ i ] ] = handler;
-		}
-	}
-
-	/**
-	 * Checks document order of two siblings
-	 * @param {Element} a
-	 * @param {Element} b
-	 * @returns {Number} Returns less than 0 if a precedes b, greater than 0 if a follows b
-	 */
-	function siblingCheck( a, b ) {
-		var cur = b && a,
-			diff = cur && a.nodeType === 1 && b.nodeType === 1 &&
-				a.sourceIndex - b.sourceIndex;
-
-		// Use IE sourceIndex if available on both nodes
-		if ( diff ) {
-			return diff;
-		}
-
-		// Check if b follows a
-		if ( cur ) {
-			while ( ( cur = cur.nextSibling ) ) {
-				if ( cur === b ) {
-					return -1;
-				}
-			}
-		}
-
-		return a ? 1 : -1;
-	}
-
-	/**
 	 * Returns a function to use in pseudos for input types
 	 * @param {String} type
 	 */
 	function createInputPseudo( type ) {
 		return function( elem ) {
-			var name = elem.nodeName.toLowerCase();
-			return name === "input" && elem.type === type;
+			return nodeName( elem, "input" ) && elem.type === type;
 		};
 	}
 
@@ -1329,8 +1333,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 */
 	function createButtonPseudo( type ) {
 		return function( elem ) {
-			var name = elem.nodeName.toLowerCase();
-			return ( name === "input" || name === "button" ) && elem.type === type;
+			return ( nodeName( elem, "input" ) || nodeName( elem, "button" ) ) &&
+				elem.type === type;
 		};
 	}
 
@@ -1366,14 +1370,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						}
 					}
 
-					// Support: IE 6 - 11
+					// Support: IE 6 - 11+
 					// Use the isDisabled shortcut property to check for disabled fieldset ancestors
 					return elem.isDisabled === disabled ||
 
 						// Where there is no isDisabled, check manually
-						/* jshint -W018 */
 						elem.isDisabled !== !disabled &&
-						inDisabledFieldset( elem ) === disabled;
+							inDisabledFieldset( elem ) === disabled;
 				}
 
 				return elem.disabled === disabled;
@@ -1413,7 +1416,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	}
 
 	/**
-	 * Checks a node for validity as a Sizzle context
+	 * Checks a node for validity as a jQuery selector context
 	 * @param {Element|Object=} context
 	 * @returns {Element|Object|Boolean} The input node if acceptable, otherwise a falsy value
 	 */
@@ -1421,31 +1424,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		return context && typeof context.getElementsByTagName !== "undefined" && context;
 	}
 
-	// Expose support vars for convenience
-	support = Sizzle.support = {};
-
-	/**
-	 * Detects XML nodes
-	 * @param {Element|Object} elem An element or a document
-	 * @returns {Boolean} True iff elem is a non-HTML XML node
-	 */
-	isXML = Sizzle.isXML = function( elem ) {
-		var namespace = elem && elem.namespaceURI,
-			docElem = elem && ( elem.ownerDocument || elem ).documentElement;
-
-		// Support: IE <=8
-		// Assume HTML when documentElement doesn't yet exist, such as inside loading iframes
-		// https://bugs.jquery.com/ticket/4833
-		return !rhtml.test( namespace || docElem && docElem.nodeName || "HTML" );
-	};
-
 	/**
 	 * Sets document-related variables once based on the current document
-	 * @param {Element|Object} [doc] An element or document object to use to set the document
+	 * @param {Element|Object} [node] An element or document object to use to set the document
 	 * @returns {Object} Returns the current document
 	 */
-	setDocument = Sizzle.setDocument = function( node ) {
-		var hasCompare, subWindow,
+	function setDocument( node ) {
+		var subWindow,
 			doc = node ? node.ownerDocument || node : preferredDoc;
 
 		// Return early if doc is invalid or already selected
@@ -1459,87 +1444,90 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// Update global variables
 		document = doc;
-		docElem = document.documentElement;
-		documentIsHTML = !isXML( document );
+		documentElement = document.documentElement;
+		documentIsHTML = !jQuery.isXMLDoc( document );
+
+		// Support: iOS 7 only, IE 9 - 11+
+		// Older browsers didn't support unprefixed `matches`.
+		matches = documentElement.matches ||
+			documentElement.webkitMatchesSelector ||
+			documentElement.msMatchesSelector;
 
 		// Support: IE 9 - 11+, Edge 12 - 18+
-		// Accessing iframe documents after unload throws "permission denied" errors (jQuery #13936)
-		// Support: IE 11+, Edge 17 - 18+
-		// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
-		// two documents; shallow comparisons work.
-		// eslint-disable-next-line eqeqeq
-		if ( preferredDoc != document &&
+		// Accessing iframe documents after unload throws "permission denied" errors
+		// (see trac-13936).
+		// Limit the fix to IE & Edge Legacy; despite Edge 15+ implementing `matches`,
+		// all IE 9+ and Edge Legacy versions implement `msMatchesSelector` as well.
+		if ( documentElement.msMatchesSelector &&
+
+			// Support: IE 11+, Edge 17 - 18+
+			// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
+			// two documents; shallow comparisons work.
+			// eslint-disable-next-line eqeqeq
+			preferredDoc != document &&
 			( subWindow = document.defaultView ) && subWindow.top !== subWindow ) {
 
-			// Support: IE 11, Edge
-			if ( subWindow.addEventListener ) {
-				subWindow.addEventListener( "unload", unloadHandler, false );
-
-			// Support: IE 9 - 10 only
-			} else if ( subWindow.attachEvent ) {
-				subWindow.attachEvent( "onunload", unloadHandler );
-			}
+			// Support: IE 9 - 11+, Edge 12 - 18+
+			subWindow.addEventListener( "unload", unloadHandler );
 		}
 
-		// Support: IE 8 - 11+, Edge 12 - 18+, Chrome <=16 - 25 only, Firefox <=3.6 - 31 only,
-		// Safari 4 - 5 only, Opera <=11.6 - 12.x only
-		// IE/Edge & older browsers don't support the :scope pseudo-class.
-		// Support: Safari 6.0 only
-		// Safari 6.0 supports :scope but it's an alias of :root there.
-		support.scope = assert( function( el ) {
-			docElem.appendChild( el ).appendChild( document.createElement( "div" ) );
-			return typeof el.querySelectorAll !== "undefined" &&
-				!el.querySelectorAll( ":scope fieldset div" ).length;
-		} );
-
-		/* Attributes
-		---------------------------------------------------------------------- */
-
-		// Support: IE<8
-		// Verify that getAttribute really returns attributes and not properties
-		// (excepting IE8 booleans)
-		support.attributes = assert( function( el ) {
-			el.className = "i";
-			return !el.getAttribute( "className" );
-		} );
-
-		/* getElement(s)By*
-		---------------------------------------------------------------------- */
-
-		// Check if getElementsByTagName("*") returns only elements
-		support.getElementsByTagName = assert( function( el ) {
-			el.appendChild( document.createComment( "" ) );
-			return !el.getElementsByTagName( "*" ).length;
-		} );
-
-		// Support: IE<9
-		support.getElementsByClassName = rnative.test( document.getElementsByClassName );
-
-		// Support: IE<10
+		// Support: IE <10
 		// Check if getElementById returns elements by name
 		// The broken getElementById methods don't pick up programmatically-set names,
 		// so use a roundabout getElementsByName test
 		support.getById = assert( function( el ) {
-			docElem.appendChild( el ).id = expando;
-			return !document.getElementsByName || !document.getElementsByName( expando ).length;
+			documentElement.appendChild( el ).id = jQuery.expando;
+			return !document.getElementsByName ||
+				!document.getElementsByName( jQuery.expando ).length;
+		} );
+
+		// Support: IE 9 only
+		// Check to see if it's possible to do matchesSelector
+		// on a disconnected node.
+		support.disconnectedMatch = assert( function( el ) {
+			return matches.call( el, "*" );
+		} );
+
+		// Support: IE 9 - 11+, Edge 12 - 18+
+		// IE/Edge don't support the :scope pseudo-class.
+		support.scope = assert( function() {
+			return document.querySelectorAll( ":scope" );
+		} );
+
+		// Support: Chrome 105 - 111 only, Safari 15.4 - 16.3 only
+		// Make sure the `:has()` argument is parsed unforgivingly.
+		// We include `*` in the test to detect buggy implementations that are
+		// _selectively_ forgiving (specifically when the list includes at least
+		// one valid selector).
+		// Note that we treat complete lack of support for `:has()` as if it were
+		// spec-compliant support, which is fine because use of `:has()` in such
+		// environments will fail in the qSA path and fall back to jQuery traversal
+		// anyway.
+		support.cssHas = assert( function() {
+			try {
+				document.querySelector( ":has(*,:jqfake)" );
+				return false;
+			} catch ( e ) {
+				return true;
+			}
 		} );
 
 		// ID filter and find
 		if ( support.getById ) {
-			Expr.filter[ "ID" ] = function( id ) {
+			Expr.filter.ID = function( id ) {
 				var attrId = id.replace( runescape, funescape );
 				return function( elem ) {
 					return elem.getAttribute( "id" ) === attrId;
 				};
 			};
-			Expr.find[ "ID" ] = function( id, context ) {
+			Expr.find.ID = function( id, context ) {
 				if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
 					var elem = context.getElementById( id );
 					return elem ? [ elem ] : [];
 				}
 			};
 		} else {
-			Expr.filter[ "ID" ] =  function( id ) {
+			Expr.filter.ID =  function( id ) {
 				var attrId = id.replace( runescape, funescape );
 				return function( elem ) {
 					var node = typeof elem.getAttributeNode !== "undefined" &&
@@ -1550,7 +1538,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			// Support: IE 6 - 7 only
 			// getElementById is not reliable as a find shortcut
-			Expr.find[ "ID" ] = function( id, context ) {
+			Expr.find.ID = function( id, context ) {
 				if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
 					var node, i, elems,
 						elem = context.getElementById( id );
@@ -1580,40 +1568,18 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		}
 
 		// Tag
-		Expr.find[ "TAG" ] = support.getElementsByTagName ?
-			function( tag, context ) {
-				if ( typeof context.getElementsByTagName !== "undefined" ) {
-					return context.getElementsByTagName( tag );
+		Expr.find.TAG = function( tag, context ) {
+			if ( typeof context.getElementsByTagName !== "undefined" ) {
+				return context.getElementsByTagName( tag );
 
-				// DocumentFragment nodes don't have gEBTN
-				} else if ( support.qsa ) {
-					return context.querySelectorAll( tag );
-				}
-			} :
-
-			function( tag, context ) {
-				var elem,
-					tmp = [],
-					i = 0,
-
-					// By happy coincidence, a (broken) gEBTN appears on DocumentFragment nodes too
-					results = context.getElementsByTagName( tag );
-
-				// Filter out possible comments
-				if ( tag === "*" ) {
-					while ( ( elem = results[ i++ ] ) ) {
-						if ( elem.nodeType === 1 ) {
-							tmp.push( elem );
-						}
-					}
-
-					return tmp;
-				}
-				return results;
-			};
+			// DocumentFragment nodes don't have gEBTN
+			} else {
+				return context.querySelectorAll( tag );
+			}
+		};
 
 		// Class
-		Expr.find[ "CLASS" ] = support.getElementsByClassName && function( className, context ) {
+		Expr.find.CLASS = function( className, context ) {
 			if ( typeof context.getElementsByClassName !== "undefined" && documentIsHTML ) {
 				return context.getElementsByClassName( className );
 			}
@@ -1624,177 +1590,94 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// QSA and matchesSelector support
 
-		// matchesSelector(:active) reports false when true (IE9/Opera 11.5)
-		rbuggyMatches = [];
-
-		// qSa(:focus) reports false when true (Chrome 21)
-		// We allow this because of a bug in IE8/9 that throws an error
-		// whenever `document.activeElement` is accessed on an iframe
-		// So, we allow :focus to pass through QSA all the time to avoid the IE error
-		// See https://bugs.jquery.com/ticket/13378
 		rbuggyQSA = [];
 
-		if ( ( support.qsa = rnative.test( document.querySelectorAll ) ) ) {
+		// Build QSA regex
+		// Regex strategy adopted from Diego Perini
+		assert( function( el ) {
 
-			// Build QSA regex
-			// Regex strategy adopted from Diego Perini
-			assert( function( el ) {
+			var input;
 
-				var input;
+			documentElement.appendChild( el ).innerHTML =
+				"<a id='" + expando + "' href='' disabled='disabled'></a>" +
+				"<select id='" + expando + "-\r\\' disabled='disabled'>" +
+				"<option selected=''></option></select>";
 
-				// Select is set to empty string on purpose
-				// This is to test IE's treatment of not explicitly
-				// setting a boolean content attribute,
-				// since its presence should be enough
-				// https://bugs.jquery.com/ticket/12359
-				docElem.appendChild( el ).innerHTML = "<a id='" + expando + "'></a>" +
-					"<select id='" + expando + "-\r\\' msallowcapture=''>" +
-					"<option selected=''></option></select>";
+			// Support: iOS <=7 - 8 only
+			// Boolean attributes and "value" are not treated correctly in some XML documents
+			if ( !el.querySelectorAll( "[selected]" ).length ) {
+				rbuggyQSA.push( "\\[" + whitespace + "*(?:value|" + booleans + ")" );
+			}
 
-				// Support: IE8, Opera 11-12.16
-				// Nothing should be selected when empty strings follow ^= or $= or *=
-				// The test attribute must be unknown in Opera but "safe" for WinRT
-				// https://msdn.microsoft.com/en-us/library/ie/hh465388.aspx#attribute_section
-				if ( el.querySelectorAll( "[msallowcapture^='']" ).length ) {
-					rbuggyQSA.push( "[*^$]=" + whitespace + "*(?:''|\"\")" );
-				}
+			// Support: iOS <=7 - 8 only
+			if ( !el.querySelectorAll( "[id~=" + expando + "-]" ).length ) {
+				rbuggyQSA.push( "~=" );
+			}
 
-				// Support: IE8
-				// Boolean attributes and "value" are not treated correctly
-				if ( !el.querySelectorAll( "[selected]" ).length ) {
-					rbuggyQSA.push( "\\[" + whitespace + "*(?:value|" + booleans + ")" );
-				}
+			// Support: iOS 8 only
+			// https://bugs.webkit.org/show_bug.cgi?id=136851
+			// In-page `selector#id sibling-combinator selector` fails
+			if ( !el.querySelectorAll( "a#" + expando + "+*" ).length ) {
+				rbuggyQSA.push( ".#.+[+~]" );
+			}
 
-				// Support: Chrome<29, Android<4.4, Safari<7.0+, iOS<7.0+, PhantomJS<1.9.8+
-				if ( !el.querySelectorAll( "[id~=" + expando + "-]" ).length ) {
-					rbuggyQSA.push( "~=" );
-				}
+			// Support: Chrome <=105+, Firefox <=104+, Safari <=15.4+
+			// In some of the document kinds, these selectors wouldn't work natively.
+			// This is probably OK but for backwards compatibility we want to maintain
+			// handling them through jQuery traversal in jQuery 3.x.
+			if ( !el.querySelectorAll( ":checked" ).length ) {
+				rbuggyQSA.push( ":checked" );
+			}
 
-				// Support: IE 11+, Edge 15 - 18+
-				// IE 11/Edge don't find elements on a `[name='']` query in some cases.
-				// Adding a temporary attribute to the document before the selection works
-				// around the issue.
-				// Interestingly, IE 10 & older don't seem to have the issue.
-				input = document.createElement( "input" );
-				input.setAttribute( "name", "" );
-				el.appendChild( input );
-				if ( !el.querySelectorAll( "[name='']" ).length ) {
-					rbuggyQSA.push( "\\[" + whitespace + "*name" + whitespace + "*=" +
-						whitespace + "*(?:''|\"\")" );
-				}
+			// Support: Windows 8 Native Apps
+			// The type and name attributes are restricted during .innerHTML assignment
+			input = document.createElement( "input" );
+			input.setAttribute( "type", "hidden" );
+			el.appendChild( input ).setAttribute( "name", "D" );
 
-				// Webkit/Opera - :checked should return selected option elements
-				// http://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
-				// IE8 throws error here and will not see later tests
-				if ( !el.querySelectorAll( ":checked" ).length ) {
-					rbuggyQSA.push( ":checked" );
-				}
+			// Support: IE 9 - 11+
+			// IE's :disabled selector does not pick up the children of disabled fieldsets
+			// Support: Chrome <=105+, Firefox <=104+, Safari <=15.4+
+			// In some of the document kinds, these selectors wouldn't work natively.
+			// This is probably OK but for backwards compatibility we want to maintain
+			// handling them through jQuery traversal in jQuery 3.x.
+			documentElement.appendChild( el ).disabled = true;
+			if ( el.querySelectorAll( ":disabled" ).length !== 2 ) {
+				rbuggyQSA.push( ":enabled", ":disabled" );
+			}
 
-				// Support: Safari 8+, iOS 8+
-				// https://bugs.webkit.org/show_bug.cgi?id=136851
-				// In-page `selector#id sibling-combinator selector` fails
-				if ( !el.querySelectorAll( "a#" + expando + "+*" ).length ) {
-					rbuggyQSA.push( ".#.+[+~]" );
-				}
+			// Support: IE 11+, Edge 15 - 18+
+			// IE 11/Edge don't find elements on a `[name='']` query in some cases.
+			// Adding a temporary attribute to the document before the selection works
+			// around the issue.
+			// Interestingly, IE 10 & older don't seem to have the issue.
+			input = document.createElement( "input" );
+			input.setAttribute( "name", "" );
+			el.appendChild( input );
+			if ( !el.querySelectorAll( "[name='']" ).length ) {
+				rbuggyQSA.push( "\\[" + whitespace + "*name" + whitespace + "*=" +
+					whitespace + "*(?:''|\"\")" );
+			}
+		} );
 
-				// Support: Firefox <=3.6 - 5 only
-				// Old Firefox doesn't throw on a badly-escaped identifier.
-				el.querySelectorAll( "\\\f" );
-				rbuggyQSA.push( "[\\r\\n\\f]" );
-			} );
+		if ( !support.cssHas ) {
 
-			assert( function( el ) {
-				el.innerHTML = "<a href='' disabled='disabled'></a>" +
-					"<select disabled='disabled'><option/></select>";
-
-				// Support: Windows 8 Native Apps
-				// The type and name attributes are restricted during .innerHTML assignment
-				var input = document.createElement( "input" );
-				input.setAttribute( "type", "hidden" );
-				el.appendChild( input ).setAttribute( "name", "D" );
-
-				// Support: IE8
-				// Enforce case-sensitivity of name attribute
-				if ( el.querySelectorAll( "[name=d]" ).length ) {
-					rbuggyQSA.push( "name" + whitespace + "*[*^$|!~]?=" );
-				}
-
-				// FF 3.5 - :enabled/:disabled and hidden elements (hidden elements are still enabled)
-				// IE8 throws error here and will not see later tests
-				if ( el.querySelectorAll( ":enabled" ).length !== 2 ) {
-					rbuggyQSA.push( ":enabled", ":disabled" );
-				}
-
-				// Support: IE9-11+
-				// IE's :disabled selector does not pick up the children of disabled fieldsets
-				docElem.appendChild( el ).disabled = true;
-				if ( el.querySelectorAll( ":disabled" ).length !== 2 ) {
-					rbuggyQSA.push( ":enabled", ":disabled" );
-				}
-
-				// Support: Opera 10 - 11 only
-				// Opera 10-11 does not throw on post-comma invalid pseudos
-				el.querySelectorAll( "*,:x" );
-				rbuggyQSA.push( ",.*:" );
-			} );
-		}
-
-		if ( ( support.matchesSelector = rnative.test( ( matches = docElem.matches ||
-			docElem.webkitMatchesSelector ||
-			docElem.mozMatchesSelector ||
-			docElem.oMatchesSelector ||
-			docElem.msMatchesSelector ) ) ) ) {
-
-			assert( function( el ) {
-
-				// Check to see if it's possible to do matchesSelector
-				// on a disconnected node (IE 9)
-				support.disconnectedMatch = matches.call( el, "*" );
-
-				// This should fail with an exception
-				// Gecko does not error, returns false instead
-				matches.call( el, "[s!='']:x" );
-				rbuggyMatches.push( "!=", pseudos );
-			} );
+			// Support: Chrome 105 - 110+, Safari 15.4 - 16.3+
+			// Our regular `try-catch` mechanism fails to detect natively-unsupported
+			// pseudo-classes inside `:has()` (such as `:has(:contains("Foo"))`)
+			// in browsers that parse the `:has()` argument as a forgiving selector list.
+			// https://drafts.csswg.org/selectors/#relational now requires the argument
+			// to be parsed unforgivingly, but browsers have not yet fully adjusted.
+			rbuggyQSA.push( ":has" );
 		}
 
 		rbuggyQSA = rbuggyQSA.length && new RegExp( rbuggyQSA.join( "|" ) );
-		rbuggyMatches = rbuggyMatches.length && new RegExp( rbuggyMatches.join( "|" ) );
-
-		/* Contains
-		---------------------------------------------------------------------- */
-		hasCompare = rnative.test( docElem.compareDocumentPosition );
-
-		// Element contains another
-		// Purposefully self-exclusive
-		// As in, an element does not contain itself
-		contains = hasCompare || rnative.test( docElem.contains ) ?
-			function( a, b ) {
-				var adown = a.nodeType === 9 ? a.documentElement : a,
-					bup = b && b.parentNode;
-				return a === bup || !!( bup && bup.nodeType === 1 && (
-					adown.contains ?
-						adown.contains( bup ) :
-						a.compareDocumentPosition && a.compareDocumentPosition( bup ) & 16
-				) );
-			} :
-			function( a, b ) {
-				if ( b ) {
-					while ( ( b = b.parentNode ) ) {
-						if ( b === a ) {
-							return true;
-						}
-					}
-				}
-				return false;
-			};
 
 		/* Sorting
 		---------------------------------------------------------------------- */
 
 		// Document order sorting
-		sortOrder = hasCompare ?
-		function( a, b ) {
+		sortOrder = function( a, b ) {
 
 			// Flag for duplicate removal
 			if ( a === b ) {
@@ -1828,8 +1711,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
 				// two documents; shallow comparisons work.
 				// eslint-disable-next-line eqeqeq
-				if ( a == document || a.ownerDocument == preferredDoc &&
-					contains( preferredDoc, a ) ) {
+				if ( a === document || a.ownerDocument == preferredDoc &&
+					find.contains( preferredDoc, a ) ) {
 					return -1;
 				}
 
@@ -1837,100 +1720,33 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
 				// two documents; shallow comparisons work.
 				// eslint-disable-next-line eqeqeq
-				if ( b == document || b.ownerDocument == preferredDoc &&
-					contains( preferredDoc, b ) ) {
+				if ( b === document || b.ownerDocument == preferredDoc &&
+					find.contains( preferredDoc, b ) ) {
 					return 1;
 				}
 
 				// Maintain original order
 				return sortInput ?
-					( indexOf( sortInput, a ) - indexOf( sortInput, b ) ) :
+					( indexOf.call( sortInput, a ) - indexOf.call( sortInput, b ) ) :
 					0;
 			}
 
 			return compare & 4 ? -1 : 1;
-		} :
-		function( a, b ) {
-
-			// Exit early if the nodes are identical
-			if ( a === b ) {
-				hasDuplicate = true;
-				return 0;
-			}
-
-			var cur,
-				i = 0,
-				aup = a.parentNode,
-				bup = b.parentNode,
-				ap = [ a ],
-				bp = [ b ];
-
-			// Parentless nodes are either documents or disconnected
-			if ( !aup || !bup ) {
-
-				// Support: IE 11+, Edge 17 - 18+
-				// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
-				// two documents; shallow comparisons work.
-				/* eslint-disable eqeqeq */
-				return a == document ? -1 :
-					b == document ? 1 :
-					/* eslint-enable eqeqeq */
-					aup ? -1 :
-					bup ? 1 :
-					sortInput ?
-					( indexOf( sortInput, a ) - indexOf( sortInput, b ) ) :
-					0;
-
-			// If the nodes are siblings, we can do a quick check
-			} else if ( aup === bup ) {
-				return siblingCheck( a, b );
-			}
-
-			// Otherwise we need full lists of their ancestors for comparison
-			cur = a;
-			while ( ( cur = cur.parentNode ) ) {
-				ap.unshift( cur );
-			}
-			cur = b;
-			while ( ( cur = cur.parentNode ) ) {
-				bp.unshift( cur );
-			}
-
-			// Walk down the tree looking for a discrepancy
-			while ( ap[ i ] === bp[ i ] ) {
-				i++;
-			}
-
-			return i ?
-
-				// Do a sibling check if the nodes have a common ancestor
-				siblingCheck( ap[ i ], bp[ i ] ) :
-
-				// Otherwise nodes in our document sort first
-				// Support: IE 11+, Edge 17 - 18+
-				// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
-				// two documents; shallow comparisons work.
-				/* eslint-disable eqeqeq */
-				ap[ i ] == preferredDoc ? -1 :
-				bp[ i ] == preferredDoc ? 1 :
-				/* eslint-enable eqeqeq */
-				0;
 		};
 
 		return document;
+	}
+
+	find.matches = function( expr, elements ) {
+		return find( expr, null, null, elements );
 	};
 
-	Sizzle.matches = function( expr, elements ) {
-		return Sizzle( expr, null, null, elements );
-	};
-
-	Sizzle.matchesSelector = function( elem, expr ) {
+	find.matchesSelector = function( elem, expr ) {
 		setDocument( elem );
 
-		if ( support.matchesSelector && documentIsHTML &&
+		if ( documentIsHTML &&
 			!nonnativeSelectorCache[ expr + " " ] &&
-			( !rbuggyMatches || !rbuggyMatches.test( expr ) ) &&
-			( !rbuggyQSA     || !rbuggyQSA.test( expr ) ) ) {
+			( !rbuggyQSA || !rbuggyQSA.test( expr ) ) ) {
 
 			try {
 				var ret = matches.call( elem, expr );
@@ -1938,9 +1754,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				// IE 9's matchesSelector returns false on disconnected nodes
 				if ( ret || support.disconnectedMatch ||
 
-					// As well, disconnected nodes are said to be in a document
-					// fragment in IE 9
-					elem.document && elem.document.nodeType !== 11 ) {
+						// As well, disconnected nodes are said to be in a document
+						// fragment in IE 9
+						elem.document && elem.document.nodeType !== 11 ) {
 					return ret;
 				}
 			} catch ( e ) {
@@ -1948,10 +1764,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			}
 		}
 
-		return Sizzle( expr, document, null, [ elem ] ).length > 0;
+		return find( expr, document, null, [ elem ] ).length > 0;
 	};
 
-	Sizzle.contains = function( context, elem ) {
+	find.contains = function( context, elem ) {
 
 		// Set document vars if needed
 		// Support: IE 11+, Edge 17 - 18+
@@ -1961,10 +1777,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		if ( ( context.ownerDocument || context ) != document ) {
 			setDocument( context );
 		}
-		return contains( context, elem );
+		return jQuery.contains( context, elem );
 	};
 
-	Sizzle.attr = function( elem, name ) {
+
+	find.attr = function( elem, name ) {
 
 		// Set document vars if needed
 		// Support: IE 11+, Edge 17 - 18+
@@ -1977,25 +1794,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		var fn = Expr.attrHandle[ name.toLowerCase() ],
 
-			// Don't get fooled by Object.prototype properties (jQuery #13807)
+			// Don't get fooled by Object.prototype properties (see trac-13807)
 			val = fn && hasOwn.call( Expr.attrHandle, name.toLowerCase() ) ?
 				fn( elem, name, !documentIsHTML ) :
 				undefined;
 
-		return val !== undefined ?
-			val :
-			support.attributes || !documentIsHTML ?
-				elem.getAttribute( name ) :
-				( val = elem.getAttributeNode( name ) ) && val.specified ?
-					val.value :
-					null;
+		if ( val !== undefined ) {
+			return val;
+		}
+
+		return elem.getAttribute( name );
 	};
 
-	Sizzle.escape = function( sel ) {
-		return ( sel + "" ).replace( rcssescape, fcssescape );
-	};
-
-	Sizzle.error = function( msg ) {
+	find.error = function( msg ) {
 		throw new Error( "Syntax error, unrecognized expression: " + msg );
 	};
 
@@ -2003,16 +1814,20 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	 * Document sorting and removing duplicates
 	 * @param {ArrayLike} results
 	 */
-	Sizzle.uniqueSort = function( results ) {
+	jQuery.uniqueSort = function( results ) {
 		var elem,
 			duplicates = [],
 			j = 0,
 			i = 0;
 
 		// Unless we *know* we can detect duplicates, assume their presence
-		hasDuplicate = !support.detectDuplicates;
-		sortInput = !support.sortStable && results.slice( 0 );
-		results.sort( sortOrder );
+		//
+		// Support: Android <=4.0+
+		// Testing for detecting duplicates is unpredictable so instead assume we can't
+		// depend on duplicate detection in all browsers without a stable sort.
+		hasDuplicate = !support.sortStable;
+		sortInput = !support.sortStable && slice.call( results, 0 );
+		sort.call( results, sortOrder );
 
 		if ( hasDuplicate ) {
 			while ( ( elem = results[ i++ ] ) ) {
@@ -2021,7 +1836,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				}
 			}
 			while ( j-- ) {
-				results.splice( duplicates[ j ], 1 );
+				splice.call( results, duplicates[ j ], 1 );
 			}
 		}
 
@@ -2032,47 +1847,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		return results;
 	};
 
-	/**
-	 * Utility function for retrieving the text value of an array of DOM nodes
-	 * @param {Array|Element} elem
-	 */
-	getText = Sizzle.getText = function( elem ) {
-		var node,
-			ret = "",
-			i = 0,
-			nodeType = elem.nodeType;
-
-		if ( !nodeType ) {
-
-			// If no nodeType, this is expected to be an array
-			while ( ( node = elem[ i++ ] ) ) {
-
-				// Do not traverse comment nodes
-				ret += getText( node );
-			}
-		} else if ( nodeType === 1 || nodeType === 9 || nodeType === 11 ) {
-
-			// Use textContent for elements
-			// innerText usage removed for consistency of new lines (jQuery #11153)
-			if ( typeof elem.textContent === "string" ) {
-				return elem.textContent;
-			} else {
-
-				// Traverse its children
-				for ( elem = elem.firstChild; elem; elem = elem.nextSibling ) {
-					ret += getText( elem );
-				}
-			}
-		} else if ( nodeType === 3 || nodeType === 4 ) {
-			return elem.nodeValue;
-		}
-
-		// Do not include comment or processing instruction nodes
-
-		return ret;
+	jQuery.fn.uniqueSort = function() {
+		return this.pushStack( jQuery.uniqueSort( slice.apply( this ) ) );
 	};
 
-	Expr = Sizzle.selectors = {
+	Expr = jQuery.expr = {
 
 		// Can be adjusted by the user
 		cacheLength: 50,
@@ -2093,12 +1872,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		},
 
 		preFilter: {
-			"ATTR": function( match ) {
+			ATTR: function( match ) {
 				match[ 1 ] = match[ 1 ].replace( runescape, funescape );
 
 				// Move the given value to match[3] whether quoted or unquoted
-				match[ 3 ] = ( match[ 3 ] || match[ 4 ] ||
-					match[ 5 ] || "" ).replace( runescape, funescape );
+				match[ 3 ] = ( match[ 3 ] || match[ 4 ] || match[ 5 ] || "" )
+					.replace( runescape, funescape );
 
 				if ( match[ 2 ] === "~=" ) {
 					match[ 3 ] = " " + match[ 3 ] + " ";
@@ -2107,7 +1886,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return match.slice( 0, 4 );
 			},
 
-			"CHILD": function( match ) {
+			CHILD: function( match ) {
 
 				/* matches from matchExpr["CHILD"]
 					1 type (only|nth|...)
@@ -2125,29 +1904,30 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 					// nth-* requires argument
 					if ( !match[ 3 ] ) {
-						Sizzle.error( match[ 0 ] );
+						find.error( match[ 0 ] );
 					}
 
 					// numeric x and y parameters for Expr.filter.CHILD
 					// remember that false/true cast respectively to 0/1
 					match[ 4 ] = +( match[ 4 ] ?
 						match[ 5 ] + ( match[ 6 ] || 1 ) :
-						2 * ( match[ 3 ] === "even" || match[ 3 ] === "odd" ) );
+						2 * ( match[ 3 ] === "even" || match[ 3 ] === "odd" )
+					);
 					match[ 5 ] = +( ( match[ 7 ] + match[ 8 ] ) || match[ 3 ] === "odd" );
 
-					// other types prohibit arguments
+				// other types prohibit arguments
 				} else if ( match[ 3 ] ) {
-					Sizzle.error( match[ 0 ] );
+					find.error( match[ 0 ] );
 				}
 
 				return match;
 			},
 
-			"PSEUDO": function( match ) {
+			PSEUDO: function( match ) {
 				var excess,
 					unquoted = !match[ 6 ] && match[ 2 ];
 
-				if ( matchExpr[ "CHILD" ].test( match[ 0 ] ) ) {
+				if ( matchExpr.CHILD.test( match[ 0 ] ) ) {
 					return null;
 				}
 
@@ -2176,36 +1956,36 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		filter: {
 
-			"TAG": function( nodeNameSelector ) {
-				var nodeName = nodeNameSelector.replace( runescape, funescape ).toLowerCase();
+			TAG: function( nodeNameSelector ) {
+				var expectedNodeName = nodeNameSelector.replace( runescape, funescape ).toLowerCase();
 				return nodeNameSelector === "*" ?
 					function() {
 						return true;
 					} :
 					function( elem ) {
-						return elem.nodeName && elem.nodeName.toLowerCase() === nodeName;
+						return nodeName( elem, expectedNodeName );
 					};
 			},
 
-			"CLASS": function( className ) {
+			CLASS: function( className ) {
 				var pattern = classCache[ className + " " ];
 
 				return pattern ||
-					( pattern = new RegExp( "(^|" + whitespace +
-						")" + className + "(" + whitespace + "|$)" ) ) && classCache(
-							className, function( elem ) {
-								return pattern.test(
-									typeof elem.className === "string" && elem.className ||
-									typeof elem.getAttribute !== "undefined" &&
-										elem.getAttribute( "class" ) ||
-									""
-								);
+					( pattern = new RegExp( "(^|" + whitespace + ")" + className +
+						"(" + whitespace + "|$)" ) ) &&
+					classCache( className, function( elem ) {
+						return pattern.test(
+							typeof elem.className === "string" && elem.className ||
+								typeof elem.getAttribute !== "undefined" &&
+									elem.getAttribute( "class" ) ||
+								""
+						);
 					} );
 			},
 
-			"ATTR": function( name, operator, check ) {
+			ATTR: function( name, operator, check ) {
 				return function( elem ) {
-					var result = Sizzle.attr( elem, name );
+					var result = find.attr( elem, name );
 
 					if ( result == null ) {
 						return operator === "!=";
@@ -2216,22 +1996,34 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 					result += "";
 
-					/* eslint-disable max-len */
+					if ( operator === "=" ) {
+						return result === check;
+					}
+					if ( operator === "!=" ) {
+						return result !== check;
+					}
+					if ( operator === "^=" ) {
+						return check && result.indexOf( check ) === 0;
+					}
+					if ( operator === "*=" ) {
+						return check && result.indexOf( check ) > -1;
+					}
+					if ( operator === "$=" ) {
+						return check && result.slice( -check.length ) === check;
+					}
+					if ( operator === "~=" ) {
+						return ( " " + result.replace( rwhitespace, " " ) + " " )
+							.indexOf( check ) > -1;
+					}
+					if ( operator === "|=" ) {
+						return result === check || result.slice( 0, check.length + 1 ) === check + "-";
+					}
 
-					return operator === "=" ? result === check :
-						operator === "!=" ? result !== check :
-						operator === "^=" ? check && result.indexOf( check ) === 0 :
-						operator === "*=" ? check && result.indexOf( check ) > -1 :
-						operator === "$=" ? check && result.slice( -check.length ) === check :
-						operator === "~=" ? ( " " + result.replace( rwhitespace, " " ) + " " ).indexOf( check ) > -1 :
-						operator === "|=" ? result === check || result.slice( 0, check.length + 1 ) === check + "-" :
-						false;
-					/* eslint-enable max-len */
-
+					return false;
 				};
 			},
 
-			"CHILD": function( type, what, _argument, first, last ) {
+			CHILD: function( type, what, _argument, first, last ) {
 				var simple = type.slice( 0, 3 ) !== "nth",
 					forward = type.slice( -4 ) !== "last",
 					ofType = what === "of-type";
@@ -2244,7 +2036,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					} :
 
 					function( elem, _context, xml ) {
-						var cache, uniqueCache, outerCache, node, nodeIndex, start,
+						var cache, outerCache, node, nodeIndex, start,
 							dir = simple !== forward ? "nextSibling" : "previousSibling",
 							parent = elem.parentNode,
 							name = ofType && elem.nodeName.toLowerCase(),
@@ -2259,7 +2051,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 									node = elem;
 									while ( ( node = node[ dir ] ) ) {
 										if ( ofType ?
-											node.nodeName.toLowerCase() === name :
+											nodeName( node, name ) :
 											node.nodeType === 1 ) {
 
 											return false;
@@ -2278,17 +2070,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 							if ( forward && useCache ) {
 
 								// Seek `elem` from a previously-cached index
-
-								// ...in a gzip-friendly way
-								node = parent;
-								outerCache = node[ expando ] || ( node[ expando ] = {} );
-
-								// Support: IE <9 only
-								// Defend against cloned attroperties (jQuery gh-1709)
-								uniqueCache = outerCache[ node.uniqueID ] ||
-									( outerCache[ node.uniqueID ] = {} );
-
-								cache = uniqueCache[ type ] || [];
+								outerCache = parent[ expando ] || ( parent[ expando ] = {} );
+								cache = outerCache[ type ] || [];
 								nodeIndex = cache[ 0 ] === dirruns && cache[ 1 ];
 								diff = nodeIndex && cache[ 2 ];
 								node = nodeIndex && parent.childNodes[ nodeIndex ];
@@ -2300,7 +2083,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 									// When found, cache indexes on `parent` and break
 									if ( node.nodeType === 1 && ++diff && node === elem ) {
-										uniqueCache[ type ] = [ dirruns, nodeIndex, diff ];
+										outerCache[ type ] = [ dirruns, nodeIndex, diff ];
 										break;
 									}
 								}
@@ -2309,17 +2092,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 								// Use previously-cached element index if available
 								if ( useCache ) {
-
-									// ...in a gzip-friendly way
-									node = elem;
-									outerCache = node[ expando ] || ( node[ expando ] = {} );
-
-									// Support: IE <9 only
-									// Defend against cloned attroperties (jQuery gh-1709)
-									uniqueCache = outerCache[ node.uniqueID ] ||
-										( outerCache[ node.uniqueID ] = {} );
-
-									cache = uniqueCache[ type ] || [];
+									outerCache = elem[ expando ] || ( elem[ expando ] = {} );
+									cache = outerCache[ type ] || [];
 									nodeIndex = cache[ 0 ] === dirruns && cache[ 1 ];
 									diff = nodeIndex;
 								}
@@ -2333,7 +2107,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 										( diff = nodeIndex = 0 ) || start.pop() ) ) {
 
 										if ( ( ofType ?
-											node.nodeName.toLowerCase() === name :
+											nodeName( node, name ) :
 											node.nodeType === 1 ) &&
 											++diff ) {
 
@@ -2341,13 +2115,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 											if ( useCache ) {
 												outerCache = node[ expando ] ||
 													( node[ expando ] = {} );
-
-												// Support: IE <9 only
-												// Defend against cloned attroperties (jQuery gh-1709)
-												uniqueCache = outerCache[ node.uniqueID ] ||
-													( outerCache[ node.uniqueID ] = {} );
-
-												uniqueCache[ type ] = [ dirruns, diff ];
+												outerCache[ type ] = [ dirruns, diff ];
 											}
 
 											if ( node === elem ) {
@@ -2365,19 +2133,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					};
 			},
 
-			"PSEUDO": function( pseudo, argument ) {
+			PSEUDO: function( pseudo, argument ) {
 
 				// pseudo-class names are case-insensitive
-				// http://www.w3.org/TR/selectors/#pseudo-classes
+				// https://www.w3.org/TR/selectors/#pseudo-classes
 				// Prioritize by case sensitivity in case custom pseudos are added with uppercase letters
 				// Remember that setFilters inherits from pseudos
 				var args,
 					fn = Expr.pseudos[ pseudo ] || Expr.setFilters[ pseudo.toLowerCase() ] ||
-						Sizzle.error( "unsupported pseudo: " + pseudo );
+						find.error( "unsupported pseudo: " + pseudo );
 
 				// The user may use createPseudo to indicate that
 				// arguments are needed to create the filter function
-				// just as Sizzle does
+				// just as jQuery does
 				if ( fn[ expando ] ) {
 					return fn( argument );
 				}
@@ -2391,7 +2159,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 								matched = fn( seed, argument ),
 								i = matched.length;
 							while ( i-- ) {
-								idx = indexOf( seed, matched[ i ] );
+								idx = indexOf.call( seed, matched[ i ] );
 								seed[ idx ] = !( matches[ idx ] = matched[ i ] );
 							}
 						} ) :
@@ -2407,14 +2175,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		pseudos: {
 
 			// Potentially complex pseudos
-			"not": markFunction( function( selector ) {
+			not: markFunction( function( selector ) {
 
 				// Trim the selector passed to compile
 				// to avoid treating leading and trailing
 				// spaces as combinators
 				var input = [],
 					results = [],
-					matcher = compile( selector.replace( rtrim, "$1" ) );
+					matcher = compile( selector.replace( rtrimCSS, "$1" ) );
 
 				return matcher[ expando ] ?
 					markFunction( function( seed, matches, _context, xml ) {
@@ -2433,22 +2201,23 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						input[ 0 ] = elem;
 						matcher( input, null, xml, results );
 
-						// Don't keep the element (issue #299)
+						// Don't keep the element
+						// (see https://github.com/jquery/sizzle/issues/299)
 						input[ 0 ] = null;
 						return !results.pop();
 					};
 			} ),
 
-			"has": markFunction( function( selector ) {
+			has: markFunction( function( selector ) {
 				return function( elem ) {
-					return Sizzle( selector, elem ).length > 0;
+					return find( selector, elem ).length > 0;
 				};
 			} ),
 
-			"contains": markFunction( function( text ) {
+			contains: markFunction( function( text ) {
 				text = text.replace( runescape, funescape );
 				return function( elem ) {
-					return ( elem.textContent || getText( elem ) ).indexOf( text ) > -1;
+					return ( elem.textContent || jQuery.text( elem ) ).indexOf( text ) > -1;
 				};
 			} ),
 
@@ -2458,12 +2227,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			// or beginning with the identifier C immediately followed by "-".
 			// The matching of C against the element's language value is performed case-insensitively.
 			// The identifier C does not have to be a valid language name."
-			// http://www.w3.org/TR/selectors/#lang-pseudo
-			"lang": markFunction( function( lang ) {
+			// https://www.w3.org/TR/selectors/#lang-pseudo
+			lang: markFunction( function( lang ) {
 
 				// lang value must be a valid identifier
 				if ( !ridentifier.test( lang || "" ) ) {
-					Sizzle.error( "unsupported lang: " + lang );
+					find.error( "unsupported lang: " + lang );
 				}
 				lang = lang.replace( runescape, funescape ).toLowerCase();
 				return function( elem ) {
@@ -2482,38 +2251,39 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			} ),
 
 			// Miscellaneous
-			"target": function( elem ) {
+			target: function( elem ) {
 				var hash = window.location && window.location.hash;
 				return hash && hash.slice( 1 ) === elem.id;
 			},
 
-			"root": function( elem ) {
-				return elem === docElem;
+			root: function( elem ) {
+				return elem === documentElement;
 			},
 
-			"focus": function( elem ) {
-				return elem === document.activeElement &&
-					( !document.hasFocus || document.hasFocus() ) &&
+			focus: function( elem ) {
+				return elem === safeActiveElement() &&
+					document.hasFocus() &&
 					!!( elem.type || elem.href || ~elem.tabIndex );
 			},
 
 			// Boolean properties
-			"enabled": createDisabledPseudo( false ),
-			"disabled": createDisabledPseudo( true ),
+			enabled: createDisabledPseudo( false ),
+			disabled: createDisabledPseudo( true ),
 
-			"checked": function( elem ) {
+			checked: function( elem ) {
 
 				// In CSS3, :checked should return both checked and selected elements
-				// http://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
-				var nodeName = elem.nodeName.toLowerCase();
-				return ( nodeName === "input" && !!elem.checked ) ||
-					( nodeName === "option" && !!elem.selected );
+				// https://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
+				return ( nodeName( elem, "input" ) && !!elem.checked ) ||
+					( nodeName( elem, "option" ) && !!elem.selected );
 			},
 
-			"selected": function( elem ) {
+			selected: function( elem ) {
 
-				// Accessing this property makes selected-by-default
-				// options in Safari work properly
+				// Support: IE <=11+
+				// Accessing the selectedIndex property
+				// forces the browser to treat the default option as
+				// selected when in an optgroup.
 				if ( elem.parentNode ) {
 					// eslint-disable-next-line no-unused-expressions
 					elem.parentNode.selectedIndex;
@@ -2523,9 +2293,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			},
 
 			// Contents
-			"empty": function( elem ) {
+			empty: function( elem ) {
 
-				// http://www.w3.org/TR/selectors/#empty-pseudo
+				// https://www.w3.org/TR/selectors/#empty-pseudo
 				// :empty is negated by element (1) or content nodes (text: 3; cdata: 4; entity ref: 5),
 				//   but not by others (comment: 8; processing instruction: 7; etc.)
 				// nodeType < 6 works because attributes (2) do not appear as children
@@ -2537,49 +2307,49 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return true;
 			},
 
-			"parent": function( elem ) {
-				return !Expr.pseudos[ "empty" ]( elem );
+			parent: function( elem ) {
+				return !Expr.pseudos.empty( elem );
 			},
 
 			// Element/input types
-			"header": function( elem ) {
+			header: function( elem ) {
 				return rheader.test( elem.nodeName );
 			},
 
-			"input": function( elem ) {
+			input: function( elem ) {
 				return rinputs.test( elem.nodeName );
 			},
 
-			"button": function( elem ) {
-				var name = elem.nodeName.toLowerCase();
-				return name === "input" && elem.type === "button" || name === "button";
+			button: function( elem ) {
+				return nodeName( elem, "input" ) && elem.type === "button" ||
+					nodeName( elem, "button" );
 			},
 
-			"text": function( elem ) {
+			text: function( elem ) {
 				var attr;
-				return elem.nodeName.toLowerCase() === "input" &&
-					elem.type === "text" &&
+				return nodeName( elem, "input" ) && elem.type === "text" &&
 
-					// Support: IE<8
-					// New HTML5 attribute values (e.g., "search") appear with elem.type === "text"
+					// Support: IE <10 only
+					// New HTML5 attribute values (e.g., "search") appear
+					// with elem.type === "text"
 					( ( attr = elem.getAttribute( "type" ) ) == null ||
 						attr.toLowerCase() === "text" );
 			},
 
 			// Position-in-collection
-			"first": createPositionalPseudo( function() {
+			first: createPositionalPseudo( function() {
 				return [ 0 ];
 			} ),
 
-			"last": createPositionalPseudo( function( _matchIndexes, length ) {
+			last: createPositionalPseudo( function( _matchIndexes, length ) {
 				return [ length - 1 ];
 			} ),
 
-			"eq": createPositionalPseudo( function( _matchIndexes, length, argument ) {
+			eq: createPositionalPseudo( function( _matchIndexes, length, argument ) {
 				return [ argument < 0 ? argument + length : argument ];
 			} ),
 
-			"even": createPositionalPseudo( function( matchIndexes, length ) {
+			even: createPositionalPseudo( function( matchIndexes, length ) {
 				var i = 0;
 				for ( ; i < length; i += 2 ) {
 					matchIndexes.push( i );
@@ -2587,7 +2357,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return matchIndexes;
 			} ),
 
-			"odd": createPositionalPseudo( function( matchIndexes, length ) {
+			odd: createPositionalPseudo( function( matchIndexes, length ) {
 				var i = 1;
 				for ( ; i < length; i += 2 ) {
 					matchIndexes.push( i );
@@ -2595,19 +2365,24 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return matchIndexes;
 			} ),
 
-			"lt": createPositionalPseudo( function( matchIndexes, length, argument ) {
-				var i = argument < 0 ?
-					argument + length :
-					argument > length ?
-						length :
-						argument;
+			lt: createPositionalPseudo( function( matchIndexes, length, argument ) {
+				var i;
+
+				if ( argument < 0 ) {
+					i = argument + length;
+				} else if ( argument > length ) {
+					i = length;
+				} else {
+					i = argument;
+				}
+
 				for ( ; --i >= 0; ) {
 					matchIndexes.push( i );
 				}
 				return matchIndexes;
 			} ),
 
-			"gt": createPositionalPseudo( function( matchIndexes, length, argument ) {
+			gt: createPositionalPseudo( function( matchIndexes, length, argument ) {
 				var i = argument < 0 ? argument + length : argument;
 				for ( ; ++i < length; ) {
 					matchIndexes.push( i );
@@ -2617,7 +2392,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		}
 	};
 
-	Expr.pseudos[ "nth" ] = Expr.pseudos[ "eq" ];
+	Expr.pseudos.nth = Expr.pseudos.eq;
 
 	// Add button/input type pseudos
 	for ( i in { radio: true, checkbox: true, file: true, password: true, image: true } ) {
@@ -2632,7 +2407,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	setFilters.prototype = Expr.filters = Expr.pseudos;
 	Expr.setFilters = new setFilters();
 
-	tokenize = Sizzle.tokenize = function( selector, parseOnly ) {
+	function tokenize( selector, parseOnly ) {
 		var matched, match, tokens, type,
 			soFar, groups, preFilters,
 			cached = tokenCache[ selector + " " ];
@@ -2660,13 +2435,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			matched = false;
 
 			// Combinators
-			if ( ( match = rcombinators.exec( soFar ) ) ) {
+			if ( ( match = rleadingCombinator.exec( soFar ) ) ) {
 				matched = match.shift();
 				tokens.push( {
 					value: matched,
 
 					// Cast descendant combinators to space
-					type: match[ 0 ].replace( rtrim, " " )
+					type: match[ 0 ].replace( rtrimCSS, " " )
 				} );
 				soFar = soFar.slice( matched.length );
 			}
@@ -2693,14 +2468,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// Return the length of the invalid excess
 		// if we're just parsing
 		// Otherwise, throw an error or return tokens
-		return parseOnly ?
-			soFar.length :
-			soFar ?
-				Sizzle.error( selector ) :
+		if ( parseOnly ) {
+			return soFar.length;
+		}
 
-				// Cache the tokens
-				tokenCache( selector, groups ).slice( 0 );
-	};
+		return soFar ?
+			find.error( selector ) :
+
+			// Cache the tokens
+			tokenCache( selector, groups ).slice( 0 );
+	}
 
 	function toSelector( tokens ) {
 		var i = 0,
@@ -2733,7 +2510,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			// Check against all ancestor/preceding elements
 			function( elem, context, xml ) {
-				var oldCache, uniqueCache, outerCache,
+				var oldCache, outerCache,
 					newCache = [ dirruns, doneName ];
 
 				// We can't set arbitrary data on XML nodes, so they don't benefit from combinator caching
@@ -2750,14 +2527,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						if ( elem.nodeType === 1 || checkNonElements ) {
 							outerCache = elem[ expando ] || ( elem[ expando ] = {} );
 
-							// Support: IE <9 only
-							// Defend against cloned attroperties (jQuery gh-1709)
-							uniqueCache = outerCache[ elem.uniqueID ] ||
-								( outerCache[ elem.uniqueID ] = {} );
-
-							if ( skip && skip === elem.nodeName.toLowerCase() ) {
+							if ( skip && nodeName( elem, skip ) ) {
 								elem = elem[ dir ] || elem;
-							} else if ( ( oldCache = uniqueCache[ key ] ) &&
+							} else if ( ( oldCache = outerCache[ key ] ) &&
 								oldCache[ 0 ] === dirruns && oldCache[ 1 ] === doneName ) {
 
 								// Assign to newCache so results back-propagate to previous elements
@@ -2765,7 +2537,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 							} else {
 
 								// Reuse newcache so results back-propagate to previous elements
-								uniqueCache[ key ] = newCache;
+								outerCache[ key ] = newCache;
 
 								// A match means we're done; a fail means we have to keep checking
 								if ( ( newCache[ 2 ] = matcher( elem, context, xml ) ) ) {
@@ -2797,7 +2569,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		var i = 0,
 			len = contexts.length;
 		for ( ; i < len; i++ ) {
-			Sizzle( selector, contexts[ i ], results );
+			find( selector, contexts[ i ], results );
 		}
 		return results;
 	}
@@ -2831,38 +2603,37 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			postFinder = setMatcher( postFinder, postSelector );
 		}
 		return markFunction( function( seed, results, context, xml ) {
-			var temp, i, elem,
+			var temp, i, elem, matcherOut,
 				preMap = [],
 				postMap = [],
 				preexisting = results.length,
 
 				// Get initial elements from seed or context
-				elems = seed || multipleContexts(
-					selector || "*",
-					context.nodeType ? [ context ] : context,
-					[]
-				),
+				elems = seed ||
+					multipleContexts( selector || "*",
+						context.nodeType ? [ context ] : context, [] ),
 
 				// Prefilter to get matcher input, preserving a map for seed-results synchronization
 				matcherIn = preFilter && ( seed || !selector ) ?
 					condense( elems, preMap, preFilter, context, xml ) :
-					elems,
+					elems;
 
-				matcherOut = matcher ?
-
-					// If we have a postFinder, or filtered seed, or non-seed postFilter or preexisting results,
-					postFinder || ( seed ? preFilter : preexisting || postFilter ) ?
-
-						// ...intermediate processing is necessary
-						[] :
-
-						// ...otherwise use results directly
-						results :
-					matcherIn;
-
-			// Find primary matches
 			if ( matcher ) {
+
+				// If we have a postFinder, or filtered seed, or non-seed postFilter
+				// or preexisting results,
+				matcherOut = postFinder || ( seed ? preFilter : preexisting || postFilter ) ?
+
+					// ...intermediate processing is necessary
+					[] :
+
+					// ...otherwise use results directly
+					results;
+
+				// Find primary matches
 				matcher( matcherIn, matcherOut, context, xml );
+			} else {
+				matcherOut = matcherIn;
 			}
 
 			// Apply postFilter
@@ -2900,7 +2671,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					i = matcherOut.length;
 					while ( i-- ) {
 						if ( ( elem = matcherOut[ i ] ) &&
-							( temp = postFinder ? indexOf( seed, elem ) : preMap[ i ] ) > -1 ) {
+							( temp = postFinder ? indexOf.call( seed, elem ) : preMap[ i ] ) > -1 ) {
 
 							seed[ temp ] = !( results[ temp ] = elem );
 						}
@@ -2935,15 +2706,21 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return elem === checkContext;
 			}, implicitRelative, true ),
 			matchAnyContext = addCombinator( function( elem ) {
-				return indexOf( checkContext, elem ) > -1;
+				return indexOf.call( checkContext, elem ) > -1;
 			}, implicitRelative, true ),
 			matchers = [ function( elem, context, xml ) {
-				var ret = ( !leadingRelative && ( xml || context !== outermostContext ) ) || (
+
+				// Support: IE 11+, Edge 17 - 18+
+				// IE/Edge sometimes throw a "Permission denied" error when strict-comparing
+				// two documents; shallow comparisons work.
+				// eslint-disable-next-line eqeqeq
+				var ret = ( !leadingRelative && ( xml || context != outermostContext ) ) || (
 					( checkContext = context ).nodeType ?
 						matchContext( elem, context, xml ) :
 						matchAnyContext( elem, context, xml ) );
 
-				// Avoid hanging onto element (issue #299)
+				// Avoid hanging onto element
+				// (see https://github.com/jquery/sizzle/issues/299)
 				checkContext = null;
 				return ret;
 			} ];
@@ -2968,11 +2745,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						i > 1 && elementMatcher( matchers ),
 						i > 1 && toSelector(
 
-						// If the preceding token was a descendant combinator, insert an implicit any-element `*`
-						tokens
-							.slice( 0, i - 1 )
-							.concat( { value: tokens[ i - 2 ].type === " " ? "*" : "" } )
-						).replace( rtrim, "$1" ),
+							// If the preceding token was a descendant combinator, insert an implicit any-element `*`
+							tokens.slice( 0, i - 1 )
+								.concat( { value: tokens[ i - 2 ].type === " " ? "*" : "" } )
+						).replace( rtrimCSS, "$1" ),
 						matcher,
 						i < j && matcherFromTokens( tokens.slice( i, j ) ),
 						j < len && matcherFromTokens( ( tokens = tokens.slice( j ) ) ),
@@ -2998,7 +2774,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					contextBackup = outermostContext,
 
 					// We must always have either seed elements or outermost context
-					elems = seed || byElement && Expr.find[ "TAG" ]( "*", outermost ),
+					elems = seed || byElement && Expr.find.TAG( "*", outermost ),
 
 					// Use integer dirruns iff this is the outermost matcher
 					dirrunsUnique = ( dirruns += contextBackup == null ? 1 : Math.random() || 0.1 ),
@@ -3014,8 +2790,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				}
 
 				// Add elements passing elementMatchers directly to results
-				// Support: IE<9, Safari
-				// Tolerate NodeList properties (IE: "length"; Safari: <number>) matching elements by id
+				// Support: iOS <=7 - 9 only
+				// Tolerate NodeList properties (IE: "length"; Safari: <number>) matching
+				// elements by id. (see trac-14142)
 				for ( ; i !== len && ( elem = elems[ i ] ) != null; i++ ) {
 					if ( byElement && elem ) {
 						j = 0;
@@ -3030,7 +2807,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						}
 						while ( ( matcher = elementMatchers[ j++ ] ) ) {
 							if ( matcher( elem, context || document, xml ) ) {
-								results.push( elem );
+								push.call( results, elem );
 								break;
 							}
 						}
@@ -3093,7 +2870,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					if ( outermost && !seed && setMatched.length > 0 &&
 						( matchedCount + setMatchers.length ) > 1 ) {
 
-						Sizzle.uniqueSort( results );
+						jQuery.uniqueSort( results );
 					}
 				}
 
@@ -3111,7 +2888,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			superMatcher;
 	}
 
-	compile = Sizzle.compile = function( selector, match /* Internal Use Only */ ) {
+	function compile( selector, match /* Internal Use Only */ ) {
 		var i,
 			setMatchers = [],
 			elementMatchers = [],
@@ -3134,27 +2911,25 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			}
 
 			// Cache the compiled function
-			cached = compilerCache(
-				selector,
-				matcherFromGroupMatchers( elementMatchers, setMatchers )
-			);
+			cached = compilerCache( selector,
+				matcherFromGroupMatchers( elementMatchers, setMatchers ) );
 
 			// Save selector and tokenization
 			cached.selector = selector;
 		}
 		return cached;
-	};
+	}
 
 	/**
-	 * A low-level selection function that works with Sizzle's compiled
+	 * A low-level selection function that works with jQuery's compiled
 	 *  selector functions
 	 * @param {String|Function} selector A selector or a pre-compiled
-	 *  selector function built with Sizzle.compile
+	 *  selector function built with jQuery selector compile
 	 * @param {Element} context
 	 * @param {Array} [results]
 	 * @param {Array} [seed] A set of elements to match against
 	 */
-	select = Sizzle.select = function( selector, context, results, seed ) {
+	function select( selector, context, results, seed ) {
 		var i, tokens, token, type, find,
 			compiled = typeof selector === "function" && selector,
 			match = !seed && tokenize( ( selector = compiled.selector || selector ) );
@@ -3168,10 +2943,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			// Reduce context if the leading compound selector is an ID
 			tokens = match[ 0 ] = match[ 0 ].slice( 0 );
 			if ( tokens.length > 2 && ( token = tokens[ 0 ] ).type === "ID" &&
-				context.nodeType === 9 && documentIsHTML && Expr.relative[ tokens[ 1 ].type ] ) {
+					context.nodeType === 9 && documentIsHTML && Expr.relative[ tokens[ 1 ].type ] ) {
 
-				context = ( Expr.find[ "ID" ]( token.matches[ 0 ]
-					.replace( runescape, funescape ), context ) || [] )[ 0 ];
+				context = ( Expr.find.ID(
+					token.matches[ 0 ].replace( runescape, funescape ),
+					context
+				) || [] )[ 0 ];
 				if ( !context ) {
 					return results;
 
@@ -3184,7 +2961,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			}
 
 			// Fetch a seed set for right-to-left matching
-			i = matchExpr[ "needsContext" ].test( selector ) ? 0 : tokens.length;
+			i = matchExpr.needsContext.test( selector ) ? 0 : tokens.length;
 			while ( i-- ) {
 				token = tokens[ i ];
 
@@ -3197,8 +2974,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					// Search, expanding context for leading sibling combinators
 					if ( ( seed = find(
 						token.matches[ 0 ].replace( runescape, funescape ),
-						rsibling.test( tokens[ 0 ].type ) && testContext( context.parentNode ) ||
-							context
+						rsibling.test( tokens[ 0 ].type ) &&
+							testContext( context.parentNode ) || context
 					) ) ) {
 
 						// If seed is empty or no tokens remain, we can return early
@@ -3225,21 +3002,18 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			!context || rsibling.test( selector ) && testContext( context.parentNode ) || context
 		);
 		return results;
-	};
+	}
 
 	// One-time assignments
 
+	// Support: Android <=4.0 - 4.1+
 	// Sort stability
 	support.sortStable = expando.split( "" ).sort( sortOrder ).join( "" ) === expando;
-
-	// Support: Chrome 14-35+
-	// Always assume duplicates if they aren't passed to the comparison function
-	support.detectDuplicates = !!hasDuplicate;
 
 	// Initialize against the default document
 	setDocument();
 
-	// Support: Webkit<537.32 - Safari 6.0.3/Chrome 25 (fixed in Chrome 27)
+	// Support: Android <=4.0 - 4.1+
 	// Detached nodes confoundingly follow *each other*
 	support.sortDetached = assert( function( el ) {
 
@@ -3247,68 +3021,29 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		return el.compareDocumentPosition( document.createElement( "fieldset" ) ) & 1;
 	} );
 
-	// Support: IE<8
-	// Prevent attribute/property "interpolation"
-	// https://msdn.microsoft.com/en-us/library/ms536429%28VS.85%29.aspx
-	if ( !assert( function( el ) {
-		el.innerHTML = "<a href='#'></a>";
-		return el.firstChild.getAttribute( "href" ) === "#";
-	} ) ) {
-		addHandle( "type|href|height|width", function( elem, name, isXML ) {
-			if ( !isXML ) {
-				return elem.getAttribute( name, name.toLowerCase() === "type" ? 1 : 2 );
-			}
-		} );
-	}
-
-	// Support: IE<9
-	// Use defaultValue in place of getAttribute("value")
-	if ( !support.attributes || !assert( function( el ) {
-		el.innerHTML = "<input/>";
-		el.firstChild.setAttribute( "value", "" );
-		return el.firstChild.getAttribute( "value" ) === "";
-	} ) ) {
-		addHandle( "value", function( elem, _name, isXML ) {
-			if ( !isXML && elem.nodeName.toLowerCase() === "input" ) {
-				return elem.defaultValue;
-			}
-		} );
-	}
-
-	// Support: IE<9
-	// Use getAttributeNode to fetch booleans when getAttribute lies
-	if ( !assert( function( el ) {
-		return el.getAttribute( "disabled" ) == null;
-	} ) ) {
-		addHandle( booleans, function( elem, name, isXML ) {
-			var val;
-			if ( !isXML ) {
-				return elem[ name ] === true ? name.toLowerCase() :
-					( val = elem.getAttributeNode( name ) ) && val.specified ?
-						val.value :
-						null;
-			}
-		} );
-	}
-
-	return Sizzle;
-
-	} )( window );
-
-
-
-	jQuery.find = Sizzle;
-	jQuery.expr = Sizzle.selectors;
+	jQuery.find = find;
 
 	// Deprecated
 	jQuery.expr[ ":" ] = jQuery.expr.pseudos;
-	jQuery.uniqueSort = jQuery.unique = Sizzle.uniqueSort;
-	jQuery.text = Sizzle.getText;
-	jQuery.isXMLDoc = Sizzle.isXML;
-	jQuery.contains = Sizzle.contains;
-	jQuery.escapeSelector = Sizzle.escape;
+	jQuery.unique = jQuery.uniqueSort;
 
+	// These have always been private, but they used to be documented as part of
+	// Sizzle so let's maintain them for now for backwards compatibility purposes.
+	find.compile = compile;
+	find.select = select;
+	find.setDocument = setDocument;
+	find.tokenize = tokenize;
 
+	find.escape = jQuery.escapeSelector;
+	find.getText = jQuery.text;
+	find.isXML = jQuery.isXMLDoc;
+	find.selectors = jQuery.expr;
+	find.support = jQuery.support;
+	find.uniqueSort = jQuery.uniqueSort;
+
+		/* eslint-enable */
+
+	} )();
 
 
 	var dir = function( elem, dir, until ) {
@@ -3342,13 +3077,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	var rneedsContext = jQuery.expr.match.needsContext;
 
-
-
-	function nodeName( elem, name ) {
-
-		return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
-
-	}
 	var rsingleTag = ( /^<([a-z][^\/\0>:\x20\t\r\n\f]*)[\x20\t\r\n\f]*\/?>(?:<\/\1>|)$/i );
 
 
@@ -3447,8 +3175,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	var rootjQuery,
 
 		// A simple way to check for HTML strings
-		// Prioritize #id over <tag> to avoid XSS via location.hash (#9521)
-		// Strict HTML recognition (#11290: must start with <)
+		// Prioritize #id over <tag> to avoid XSS via location.hash (trac-9521)
+		// Strict HTML recognition (trac-11290: must start with <)
 		// Shortcut simple #id case for speed
 		rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]+))$/,
 
@@ -3599,7 +3327,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						if ( cur.nodeType < 11 && ( targets ?
 							targets.index( cur ) > -1 :
 
-							// Don't pass non-elements to Sizzle
+							// Don't pass non-elements to jQuery#find
 							cur.nodeType === 1 &&
 								jQuery.find.matchesSelector( cur, selectors ) ) ) {
 
@@ -4154,7 +3882,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 												if ( jQuery.Deferred.exceptionHook ) {
 													jQuery.Deferred.exceptionHook( e,
-														process.stackTrace );
+														process.error );
 												}
 
 												// Support: Promises/A+ section 2.3.3.3.4.1
@@ -4182,10 +3910,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 									process();
 								} else {
 
-									// Call an optional hook to record the stack, in case of exception
+									// Call an optional hook to record the error, in case of exception
 									// since it's otherwise lost when execution goes async
-									if ( jQuery.Deferred.getStackHook ) {
-										process.stackTrace = jQuery.Deferred.getStackHook();
+									if ( jQuery.Deferred.getErrorHook ) {
+										process.error = jQuery.Deferred.getErrorHook();
+
+									// The deprecated alias of the above. While the name suggests
+									// returning the stack, not an error instance, jQuery just passes
+									// it directly to `console.warn` so both will work; an instance
+									// just better cooperates with source maps.
+									} else if ( jQuery.Deferred.getStackHook ) {
+										process.error = jQuery.Deferred.getStackHook();
 									}
 									window.setTimeout( process );
 								}
@@ -4360,12 +4095,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	// warn about them ASAP rather than swallowing them by default.
 	var rerrorNames = /^(Eval|Internal|Range|Reference|Syntax|Type|URI)Error$/;
 
-	jQuery.Deferred.exceptionHook = function( error, stack ) {
+	// If `jQuery.Deferred.getErrorHook` is defined, `asyncError` is an error
+	// captured before the async barrier to get the original error cause
+	// which may otherwise be hidden.
+	jQuery.Deferred.exceptionHook = function( error, asyncError ) {
 
 		// Support: IE 8 - 9 only
 		// Console exists when dev tools are open, which can happen at any time
 		if ( window.console && window.console.warn && error && rerrorNames.test( error.name ) ) {
-			window.console.warn( "jQuery.Deferred exception: " + error.message, error.stack, stack );
+			window.console.warn( "jQuery.Deferred exception: " + error.message,
+				error.stack, asyncError );
 		}
 	};
 
@@ -4405,7 +4144,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		isReady: false,
 
 		// A counter to track how many items to wait for before
-		// the ready event fires. See #6781
+		// the ready event fires. See trac-6781
 		readyWait: 1,
 
 		// Handle when the DOM is ready
@@ -4533,7 +4272,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	// Convert dashed to camelCase; used by the css and data modules
 	// Support: IE <=9 - 11, Edge 12 - 15
-	// Microsoft forgot to hump their vendor prefix (#9572)
+	// Microsoft forgot to hump their vendor prefix (trac-9572)
 	function camelCase( string ) {
 		return string.replace( rmsPrefix, "ms-" ).replace( rdashAlpha, fcamelCase );
 	}
@@ -4569,7 +4308,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				value = {};
 
 				// We can accept data for non-element nodes in modern browsers,
-				// but we should not, see #8335.
+				// but we should not, see trac-8335.
 				// Always return an empty object.
 				if ( acceptData( owner ) ) {
 
@@ -4808,7 +4547,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						while ( i-- ) {
 
 							// Support: IE 11 only
-							// The attrs elements can be null (#14894)
+							// The attrs elements can be null (trac-14894)
 							if ( attrs[ i ] ) {
 								name = attrs[ i ].name;
 								if ( name.indexOf( "data-" ) === 0 ) {
@@ -5231,9 +4970,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			input = document.createElement( "input" );
 
 		// Support: Android 4.0 - 4.3 only
-		// Check state lost if the name is set (#11217)
+		// Check state lost if the name is set (trac-11217)
 		// Support: Windows Web Apps (WWA)
-		// `name` and `type` must use .setAttribute for WWA (#14901)
+		// `name` and `type` must use .setAttribute for WWA (trac-14901)
 		input.setAttribute( "type", "radio" );
 		input.setAttribute( "checked", "checked" );
 		input.setAttribute( "name", "t" );
@@ -5257,7 +4996,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	} )();
 
 
-	// We have to close these tags to support XHTML (#13200)
+	// We have to close these tags to support XHTML (trac-13200)
 	var wrapMap = {
 
 		// XHTML parsers do not magically insert elements in the
@@ -5283,7 +5022,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	function getAll( context, tag ) {
 
 		// Support: IE <=9 - 11 only
-		// Use typeof to avoid zero-argument method invocation on host objects (#15151)
+		// Use typeof to avoid zero-argument method invocation on host objects (trac-15151)
 		var ret;
 
 		if ( typeof context.getElementsByTagName !== "undefined" ) {
@@ -5366,7 +5105,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					// Remember the top-level container
 					tmp = fragment.firstChild;
 
-					// Ensure the created nodes are orphaned (#12392)
+					// Ensure the created nodes are orphaned (trac-12392)
 					tmp.textContent = "";
 				}
 			}
@@ -5419,25 +5158,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	function returnFalse() {
 		return false;
-	}
-
-	// Support: IE <=9 - 11+
-	// focus() and blur() are asynchronous, except when they are no-op.
-	// So expect focus to be synchronous when the element is already active,
-	// and blur to be synchronous when the element is not already active.
-	// (focus and blur are always synchronous in other supported browsers,
-	// this just defines when we can count on it).
-	function expectSync( elem, type ) {
-		return ( elem === safeActiveElement() ) === ( type === "focus" );
-	}
-
-	// Support: IE <=9 only
-	// Accessing document.activeElement can throw unexpectedly
-	// https://bugs.jquery.com/ticket/13393
-	function safeActiveElement() {
-		try {
-			return document.activeElement;
-		} catch ( err ) { }
 	}
 
 	function on( elem, types, selector, data, fn, one ) {
@@ -5787,15 +5507,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 				for ( ; cur !== this; cur = cur.parentNode || this ) {
 
-					// Don't check non-elements (#13208)
-					// Don't process clicks on disabled elements (#6911, #8165, #11382, #11764)
+					// Don't check non-elements (trac-13208)
+					// Don't process clicks on disabled elements (trac-6911, trac-8165, trac-11382, trac-11764)
 					if ( cur.nodeType === 1 && !( event.type === "click" && cur.disabled === true ) ) {
 						matchedHandlers = [];
 						matchedSelectors = {};
 						for ( i = 0; i < delegateCount; i++ ) {
 							handleObj = handlers[ i ];
 
-							// Don't conflict with Object.prototype properties (#13203)
+							// Don't conflict with Object.prototype properties (trac-13203)
 							sel = handleObj.selector + " ";
 
 							if ( matchedSelectors[ sel ] === undefined ) {
@@ -5877,7 +5597,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						el.click && nodeName( el, "input" ) ) {
 
 						// dataPriv.set( el, "click", ... )
-						leverageNative( el, "click", returnTrue );
+						leverageNative( el, "click", true );
 					}
 
 					// Return false to allow normal processing in the caller
@@ -5928,10 +5648,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	// synthetic events by interrupting progress until reinvoked in response to
 	// *native* events that it fires directly, ensuring that state changes have
 	// already occurred before other listeners are invoked.
-	function leverageNative( el, type, expectSync ) {
+	function leverageNative( el, type, isSetup ) {
 
-		// Missing expectSync indicates a trigger call, which must force setup through jQuery.event.add
-		if ( !expectSync ) {
+		// Missing `isSetup` indicates a trigger call, which must force setup through jQuery.event.add
+		if ( !isSetup ) {
 			if ( dataPriv.get( el, type ) === undefined ) {
 				jQuery.event.add( el, type, returnTrue );
 			}
@@ -5943,15 +5663,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		jQuery.event.add( el, type, {
 			namespace: false,
 			handler: function( event ) {
-				var notAsync, result,
+				var result,
 					saved = dataPriv.get( this, type );
 
 				if ( ( event.isTrigger & 1 ) && this[ type ] ) {
 
 					// Interrupt processing of the outer synthetic .trigger()ed event
-					// Saved data should be false in such cases, but might be a leftover capture object
-					// from an async native handler (gh-4350)
-					if ( !saved.length ) {
+					if ( !saved ) {
 
 						// Store arguments for use when handling the inner native event
 						// There will always be at least one argument (an event object), so this array
@@ -5960,33 +5678,22 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						dataPriv.set( this, type, saved );
 
 						// Trigger the native event and capture its result
-						// Support: IE <=9 - 11+
-						// focus() and blur() are asynchronous
-						notAsync = expectSync( this, type );
 						this[ type ]();
 						result = dataPriv.get( this, type );
-						if ( saved !== result || notAsync ) {
-							dataPriv.set( this, type, false );
-						} else {
-							result = {};
-						}
+						dataPriv.set( this, type, false );
+
 						if ( saved !== result ) {
 
 							// Cancel the outer synthetic event
 							event.stopImmediatePropagation();
 							event.preventDefault();
 
-							// Support: Chrome 86+
-							// In Chrome, if an element having a focusout handler is blurred by
-							// clicking outside of it, it invokes the handler synchronously. If
-							// that handler calls `.remove()` on the element, the data is cleared,
-							// leaving `result` undefined. We need to guard against this.
-							return result && result.value;
+							return result;
 						}
 
 					// If this is an inner synthetic event for an event with a bubbling surrogate
-					// (focus or blur), assume that the surrogate already propagated from triggering the
-					// native event and prevent that from happening again here.
+					// (focus or blur), assume that the surrogate already propagated from triggering
+					// the native event and prevent that from happening again here.
 					// This technically gets the ordering wrong w.r.t. to `.trigger()` (in which the
 					// bubbling surrogate propagates *after* the non-bubbling base), but that seems
 					// less bad than duplication.
@@ -5996,22 +5703,25 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 				// If this is a native event triggered above, everything is now in order
 				// Fire an inner synthetic event with the original arguments
-				} else if ( saved.length ) {
+				} else if ( saved ) {
 
 					// ...and capture the result
-					dataPriv.set( this, type, {
-						value: jQuery.event.trigger(
+					dataPriv.set( this, type, jQuery.event.trigger(
+						saved[ 0 ],
+						saved.slice( 1 ),
+						this
+					) );
 
-							// Support: IE <=9 - 11+
-							// Extend with the prototype to reset the above stopImmediatePropagation()
-							jQuery.extend( saved[ 0 ], jQuery.Event.prototype ),
-							saved.slice( 1 ),
-							this
-						)
-					} );
-
-					// Abort handling of the native event
-					event.stopImmediatePropagation();
+					// Abort handling of the native event by all jQuery handlers while allowing
+					// native handlers on the same element to run. On target, this is achieved
+					// by stopping immediate propagation just on the jQuery event. However,
+					// the native event is re-wrapped by a jQuery one on each level of the
+					// propagation so the only way to stop it for jQuery is to stop it for
+					// everyone via native `stopPropagation()`. This is not a problem for
+					// focus/blur which don't bubble, but it does also stop click on checkboxes
+					// and radios. We accept this limitation.
+					event.stopPropagation();
+					event.isImmediatePropagationStopped = returnTrue;
 				}
 			}
 		} );
@@ -6049,7 +5759,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 			// Create target properties
 			// Support: Safari <=6 - 7 only
-			// Target should not be a text node (#504, #13143)
+			// Target should not be a text node (trac-504, trac-13143)
 			this.target = ( src.target && src.target.nodeType === 3 ) ?
 				src.target.parentNode :
 				src.target;
@@ -6150,18 +5860,73 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	}, jQuery.event.addProp );
 
 	jQuery.each( { focus: "focusin", blur: "focusout" }, function( type, delegateType ) {
+
+		function focusMappedHandler( nativeEvent ) {
+			if ( document.documentMode ) {
+
+				// Support: IE 11+
+				// Attach a single focusin/focusout handler on the document while someone wants
+				// focus/blur. This is because the former are synchronous in IE while the latter
+				// are async. In other browsers, all those handlers are invoked synchronously.
+
+				// `handle` from private data would already wrap the event, but we need
+				// to change the `type` here.
+				var handle = dataPriv.get( this, "handle" ),
+					event = jQuery.event.fix( nativeEvent );
+				event.type = nativeEvent.type === "focusin" ? "focus" : "blur";
+				event.isSimulated = true;
+
+				// First, handle focusin/focusout
+				handle( nativeEvent );
+
+				// ...then, handle focus/blur
+				//
+				// focus/blur don't bubble while focusin/focusout do; simulate the former by only
+				// invoking the handler at the lower level.
+				if ( event.target === event.currentTarget ) {
+
+					// The setup part calls `leverageNative`, which, in turn, calls
+					// `jQuery.event.add`, so event handle will already have been set
+					// by this point.
+					handle( event );
+				}
+			} else {
+
+				// For non-IE browsers, attach a single capturing handler on the document
+				// while someone wants focusin/focusout.
+				jQuery.event.simulate( delegateType, nativeEvent.target,
+					jQuery.event.fix( nativeEvent ) );
+			}
+		}
+
 		jQuery.event.special[ type ] = {
 
 			// Utilize native event if possible so blur/focus sequence is correct
 			setup: function() {
 
+				var attaches;
+
 				// Claim the first handler
 				// dataPriv.set( this, "focus", ... )
 				// dataPriv.set( this, "blur", ... )
-				leverageNative( this, type, expectSync );
+				leverageNative( this, type, true );
 
-				// Return false to allow normal processing in the caller
-				return false;
+				if ( document.documentMode ) {
+
+					// Support: IE 9 - 11+
+					// We use the same native handler for focusin & focus (and focusout & blur)
+					// so we need to coordinate setup & teardown parts between those events.
+					// Use `delegateType` as the key as `type` is already used by `leverageNative`.
+					attaches = dataPriv.get( this, delegateType );
+					if ( !attaches ) {
+						this.addEventListener( delegateType, focusMappedHandler );
+					}
+					dataPriv.set( this, delegateType, ( attaches || 0 ) + 1 );
+				} else {
+
+					// Return false to allow normal processing in the caller
+					return false;
+				}
 			},
 			trigger: function() {
 
@@ -6172,13 +5937,83 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return true;
 			},
 
-			// Suppress native focus or blur as it's already being fired
-			// in leverageNative.
-			_default: function() {
-				return true;
+			teardown: function() {
+				var attaches;
+
+				if ( document.documentMode ) {
+					attaches = dataPriv.get( this, delegateType ) - 1;
+					if ( !attaches ) {
+						this.removeEventListener( delegateType, focusMappedHandler );
+						dataPriv.remove( this, delegateType );
+					} else {
+						dataPriv.set( this, delegateType, attaches );
+					}
+				} else {
+
+					// Return false to indicate standard teardown should be applied
+					return false;
+				}
+			},
+
+			// Suppress native focus or blur if we're currently inside
+			// a leveraged native-event stack
+			_default: function( event ) {
+				return dataPriv.get( event.target, type );
 			},
 
 			delegateType: delegateType
+		};
+
+		// Support: Firefox <=44
+		// Firefox doesn't have focus(in | out) events
+		// Related ticket - https://bugzilla.mozilla.org/show_bug.cgi?id=687787
+		//
+		// Support: Chrome <=48 - 49, Safari <=9.0 - 9.1
+		// focus(in | out) events fire after focus & blur events,
+		// which is spec violation - http://www.w3.org/TR/DOM-Level-3-Events/#events-focusevent-event-order
+		// Related ticket - https://bugs.chromium.org/p/chromium/issues/detail?id=449857
+		//
+		// Support: IE 9 - 11+
+		// To preserve relative focusin/focus & focusout/blur event order guaranteed on the 3.x branch,
+		// attach a single handler for both events in IE.
+		jQuery.event.special[ delegateType ] = {
+			setup: function() {
+
+				// Handle: regular nodes (via `this.ownerDocument`), window
+				// (via `this.document`) & document (via `this`).
+				var doc = this.ownerDocument || this.document || this,
+					dataHolder = document.documentMode ? this : doc,
+					attaches = dataPriv.get( dataHolder, delegateType );
+
+				// Support: IE 9 - 11+
+				// We use the same native handler for focusin & focus (and focusout & blur)
+				// so we need to coordinate setup & teardown parts between those events.
+				// Use `delegateType` as the key as `type` is already used by `leverageNative`.
+				if ( !attaches ) {
+					if ( document.documentMode ) {
+						this.addEventListener( delegateType, focusMappedHandler );
+					} else {
+						doc.addEventListener( type, focusMappedHandler, true );
+					}
+				}
+				dataPriv.set( dataHolder, delegateType, ( attaches || 0 ) + 1 );
+			},
+			teardown: function() {
+				var doc = this.ownerDocument || this.document || this,
+					dataHolder = document.documentMode ? this : doc,
+					attaches = dataPriv.get( dataHolder, delegateType ) - 1;
+
+				if ( !attaches ) {
+					if ( document.documentMode ) {
+						this.removeEventListener( delegateType, focusMappedHandler );
+					} else {
+						doc.removeEventListener( type, focusMappedHandler, true );
+					}
+					dataPriv.remove( dataHolder, delegateType );
+				} else {
+					dataPriv.set( dataHolder, delegateType, attaches );
+				}
+			}
 		};
 	} );
 
@@ -6274,7 +6109,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// checked="checked" or checked
 		rchecked = /checked\s*(?:[^=]|=\s*.checked.)/i,
-		rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
+
+		rcleanScript = /^\s*<!\[CDATA\[|\]\]>\s*$/g;
 
 	// Prefer a tbody over its parent table for containing new rows
 	function manipulationTarget( elem, content ) {
@@ -6388,7 +6224,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 				// Use the original fragment for the last item
 				// instead of the first because it can end up
-				// being emptied incorrectly in certain situations (#8070).
+				// being emptied incorrectly in certain situations (trac-8070).
 				for ( ; i < l; i++ ) {
 					node = fragment;
 
@@ -6410,7 +6246,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				if ( hasScripts ) {
 					doc = scripts[ scripts.length - 1 ].ownerDocument;
 
-					// Reenable scripts
+					// Re-enable scripts
 					jQuery.map( scripts, restoreScript );
 
 					// Evaluate executable scripts on first document insertion
@@ -6429,6 +6265,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 									}, doc );
 								}
 							} else {
+
+								// Unwrap a CDATA section containing script contents. This shouldn't be
+								// needed as in XML documents they're already not visible when
+								// inspecting element contents and in HTML documents they have no
+								// meaning but we're preserving that logic for backwards compatibility.
+								// This will be removed completely in 4.0. See gh-4904.
 								DOMEval( node.textContent.replace( rcleanScript, "" ), node, doc );
 							}
 						}
@@ -6475,7 +6317,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			if ( !support.noCloneChecked && ( elem.nodeType === 1 || elem.nodeType === 11 ) &&
 					!jQuery.isXMLDoc( elem ) ) {
 
-				// We eschew Sizzle here for performance reasons: https://jsperf.com/getall-vs-sizzle/2
+				// We eschew jQuery#find here for performance reasons:
+				// https://jsperf.com/getall-vs-sizzle/2
 				destElements = getAll( clone );
 				srcElements = getAll( elem );
 
@@ -6711,9 +6554,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	} );
 	var rnumnonpx = new RegExp( "^(" + pnum + ")(?!px)[a-z%]+$", "i" );
 
+	var rcustomProp = /^--/;
+
+
 	var getStyles = function( elem ) {
 
-			// Support: IE <=11 only, Firefox <=30 (#15098, #14150)
+			// Support: IE <=11 only, Firefox <=30 (trac-15098, trac-14150)
 			// IE throws on elements created in popups
 			// FF meanwhile throws on frame elements through "defaultView.getComputedStyle"
 			var view = elem.ownerDocument.defaultView;
@@ -6813,7 +6659,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		}
 
 		// Support: IE <=9 - 11 only
-		// Style of cloned element affects source element cloned (#8908)
+		// Style of cloned element affects source element cloned (trac-8908)
 		div.style.backgroundClip = "content-box";
 		div.cloneNode( true ).style.backgroundClip = "";
 		support.clearCloneStyle = div.style.backgroundClip === "content-box";
@@ -6857,7 +6703,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					trChild = document.createElement( "div" );
 
 					table.style.cssText = "position:absolute;left:-11111px;border-collapse:separate";
-					tr.style.cssText = "border:1px solid";
+					tr.style.cssText = "box-sizing:content-box;border:1px solid";
 
 					// Support: Chrome 86+
 					// Height set through cssText does not get applied.
@@ -6869,7 +6715,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					// In our bodyBackground.html iframe,
 					// display for all div elements is set to "inline",
 					// which causes a problem only in Android 8 Chrome 86.
-					// Ensuring the div is display: block
+					// Ensuring the div is `display: block`
 					// gets around this issue.
 					trChild.style.display = "block";
 
@@ -6893,6 +6739,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	function curCSS( elem, name, computed ) {
 		var width, minWidth, maxWidth, ret,
+			isCustomProp = rcustomProp.test( name ),
 
 			// Support: Firefox 51+
 			// Retrieving style before computed somehow
@@ -6903,10 +6750,41 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		computed = computed || getStyles( elem );
 
 		// getPropertyValue is needed for:
-		//   .css('filter') (IE 9 only, #12537)
-		//   .css('--customProperty) (#3144)
+		//   .css('filter') (IE 9 only, trac-12537)
+		//   .css('--customProperty) (gh-3144)
 		if ( computed ) {
+
+			// Support: IE <=9 - 11+
+			// IE only supports `"float"` in `getPropertyValue`; in computed styles
+			// it's only available as `"cssFloat"`. We no longer modify properties
+			// sent to `.css()` apart from camelCasing, so we need to check both.
+			// Normally, this would create difference in behavior: if
+			// `getPropertyValue` returns an empty string, the value returned
+			// by `.css()` would be `undefined`. This is usually the case for
+			// disconnected elements. However, in IE even disconnected elements
+			// with no styles return `"none"` for `getPropertyValue( "float" )`
 			ret = computed.getPropertyValue( name ) || computed[ name ];
+
+			if ( isCustomProp && ret ) {
+
+				// Support: Firefox 105+, Chrome <=105+
+				// Spec requires trimming whitespace for custom properties (gh-4926).
+				// Firefox only trims leading whitespace. Chrome just collapses
+				// both leading & trailing whitespace to a single space.
+				//
+				// Fall back to `undefined` if empty string returned.
+				// This collapses a missing definition with property defined
+				// and set to an empty string but there's no standard API
+				// allowing us to differentiate them without a performance penalty
+				// and returning `undefined` aligns with older jQuery.
+				//
+				// rtrimCSS treats U+000D CARRIAGE RETURN and U+000C FORM FEED
+				// as whitespace while CSS does not, but this is not a problem
+				// because CSS preprocessing replaces them with U+000A LINE FEED
+				// (which *is* CSS whitespace)
+				// https://www.w3.org/TR/css-syntax-3/#input-preprocessing
+				ret = ret.replace( rtrimCSS, "$1" ) || undefined;
+			}
 
 			if ( ret === "" && !isAttached( elem ) ) {
 				ret = jQuery.style( elem, name );
@@ -7003,7 +6881,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		// except "table", "table-cell", or "table-caption"
 		// See here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
 		rdisplayswap = /^(none|table(?!-c[ea]).+)/,
-		rcustomProp = /^--/,
 		cssShow = { position: "absolute", visibility: "hidden", display: "block" },
 		cssNormalTransform = {
 			letterSpacing: "0",
@@ -7025,7 +6902,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	function boxModelAdjustment( elem, dimension, box, isBorderBox, styles, computedVal ) {
 		var i = dimension === "width" ? 1 : 0,
 			extra = 0,
-			delta = 0;
+			delta = 0,
+			marginDelta = 0;
 
 		// Adjustment may not be necessary
 		if ( box === ( isBorderBox ? "border" : "content" ) ) {
@@ -7035,8 +6913,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		for ( ; i < 4; i += 2 ) {
 
 			// Both box models exclude margin
+			// Count margin delta separately to only add it after scroll gutter adjustment.
+			// This is needed to make negative margins work with `outerHeight( true )` (gh-3982).
 			if ( box === "margin" ) {
-				delta += jQuery.css( elem, box + cssExpand[ i ], true, styles );
+				marginDelta += jQuery.css( elem, box + cssExpand[ i ], true, styles );
 			}
 
 			// If we get here with a content-box, we're seeking "padding" or "border" or "margin"
@@ -7087,7 +6967,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			) ) || 0;
 		}
 
-		return delta;
+		return delta + marginDelta;
 	}
 
 	function getWidthOrHeight( elem, dimension, extra ) {
@@ -7185,26 +7065,35 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 		// Don't automatically add "px" to these possibly-unitless properties
 		cssNumber: {
-			"animationIterationCount": true,
-			"columnCount": true,
-			"fillOpacity": true,
-			"flexGrow": true,
-			"flexShrink": true,
-			"fontWeight": true,
-			"gridArea": true,
-			"gridColumn": true,
-			"gridColumnEnd": true,
-			"gridColumnStart": true,
-			"gridRow": true,
-			"gridRowEnd": true,
-			"gridRowStart": true,
-			"lineHeight": true,
-			"opacity": true,
-			"order": true,
-			"orphans": true,
-			"widows": true,
-			"zIndex": true,
-			"zoom": true
+			animationIterationCount: true,
+			aspectRatio: true,
+			borderImageSlice: true,
+			columnCount: true,
+			flexGrow: true,
+			flexShrink: true,
+			fontWeight: true,
+			gridArea: true,
+			gridColumn: true,
+			gridColumnEnd: true,
+			gridColumnStart: true,
+			gridRow: true,
+			gridRowEnd: true,
+			gridRowStart: true,
+			lineHeight: true,
+			opacity: true,
+			order: true,
+			orphans: true,
+			scale: true,
+			widows: true,
+			zIndex: true,
+			zoom: true,
+
+			// SVG-related
+			fillOpacity: true,
+			floodOpacity: true,
+			stopOpacity: true,
+			strokeMiterlimit: true,
+			strokeOpacity: true
 		},
 
 		// Add in properties whose names you wish to fix before
@@ -7239,15 +7128,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			if ( value !== undefined ) {
 				type = typeof value;
 
-				// Convert "+=" or "-=" to relative numbers (#7345)
+				// Convert "+=" or "-=" to relative numbers (trac-7345)
 				if ( type === "string" && ( ret = rcssNum.exec( value ) ) && ret[ 1 ] ) {
 					value = adjustCSS( elem, name, ret );
 
-					// Fixes bug #9237
+					// Fixes bug trac-9237
 					type = "number";
 				}
 
-				// Make sure that null and NaN values aren't set (#7116)
+				// Make sure that null and NaN values aren't set (trac-7116)
 				if ( value == null || value !== value ) {
 					return;
 				}
@@ -7871,7 +7760,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					remaining = Math.max( 0, animation.startTime + animation.duration - currentTime ),
 
 					// Support: Android 2.3 only
-					// Archaic crash bug won't allow us to use `1 - ( 0.5 || 0 )` (#12497)
+					// Archaic crash bug won't allow us to use `1 - ( 0.5 || 0 )` (trac-12497)
 					temp = remaining / animation.duration || 0,
 					percent = 1 - temp,
 					index = 0,
@@ -8261,7 +8150,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 
 	// Based off of the plugin by Clint Helfers, with permission.
-	// https://web.archive.org/web/20100324014747/http://blindsignals.com/index.php/2009/07/jquery-delay/
 	jQuery.fn.delay = function( time, type ) {
 		time = jQuery.fx ? jQuery.fx.speeds[ time ] || time : time;
 		type = type || "fx";
@@ -8486,8 +8374,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					// Support: IE <=9 - 11 only
 					// elem.tabIndex doesn't always return the
 					// correct value when it hasn't been explicitly set
-					// https://web.archive.org/web/20141116233347/http://fluidproject.org/blog/2008/01/09/getting-setting-and-removing-tabindex-values-with-javascript/
-					// Use proper attribute retrieval(#12072)
+					// Use proper attribute retrieval (trac-12072)
 					var tabindex = jQuery.find.attr( elem, "tabindex" );
 
 					if ( tabindex ) {
@@ -8591,8 +8478,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	jQuery.fn.extend( {
 		addClass: function( value ) {
-			var classes, elem, cur, curValue, clazz, j, finalValue,
-				i = 0;
+			var classNames, cur, curValue, className, i, finalValue;
 
 			if ( isFunction( value ) ) {
 				return this.each( function( j ) {
@@ -8600,36 +8486,35 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				} );
 			}
 
-			classes = classesToArray( value );
+			classNames = classesToArray( value );
 
-			if ( classes.length ) {
-				while ( ( elem = this[ i++ ] ) ) {
-					curValue = getClass( elem );
-					cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
+			if ( classNames.length ) {
+				return this.each( function() {
+					curValue = getClass( this );
+					cur = this.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
 
 					if ( cur ) {
-						j = 0;
-						while ( ( clazz = classes[ j++ ] ) ) {
-							if ( cur.indexOf( " " + clazz + " " ) < 0 ) {
-								cur += clazz + " ";
+						for ( i = 0; i < classNames.length; i++ ) {
+							className = classNames[ i ];
+							if ( cur.indexOf( " " + className + " " ) < 0 ) {
+								cur += className + " ";
 							}
 						}
 
 						// Only assign if different to avoid unneeded rendering.
 						finalValue = stripAndCollapse( cur );
 						if ( curValue !== finalValue ) {
-							elem.setAttribute( "class", finalValue );
+							this.setAttribute( "class", finalValue );
 						}
 					}
-				}
+				} );
 			}
 
 			return this;
 		},
 
 		removeClass: function( value ) {
-			var classes, elem, cur, curValue, clazz, j, finalValue,
-				i = 0;
+			var classNames, cur, curValue, className, i, finalValue;
 
 			if ( isFunction( value ) ) {
 				return this.each( function( j ) {
@@ -8641,44 +8526,41 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return this.attr( "class", "" );
 			}
 
-			classes = classesToArray( value );
+			classNames = classesToArray( value );
 
-			if ( classes.length ) {
-				while ( ( elem = this[ i++ ] ) ) {
-					curValue = getClass( elem );
+			if ( classNames.length ) {
+				return this.each( function() {
+					curValue = getClass( this );
 
 					// This expression is here for better compressibility (see addClass)
-					cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
+					cur = this.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
 
 					if ( cur ) {
-						j = 0;
-						while ( ( clazz = classes[ j++ ] ) ) {
+						for ( i = 0; i < classNames.length; i++ ) {
+							className = classNames[ i ];
 
 							// Remove *all* instances
-							while ( cur.indexOf( " " + clazz + " " ) > -1 ) {
-								cur = cur.replace( " " + clazz + " ", " " );
+							while ( cur.indexOf( " " + className + " " ) > -1 ) {
+								cur = cur.replace( " " + className + " ", " " );
 							}
 						}
 
 						// Only assign if different to avoid unneeded rendering.
 						finalValue = stripAndCollapse( cur );
 						if ( curValue !== finalValue ) {
-							elem.setAttribute( "class", finalValue );
+							this.setAttribute( "class", finalValue );
 						}
 					}
-				}
+				} );
 			}
 
 			return this;
 		},
 
 		toggleClass: function( value, stateVal ) {
-			var type = typeof value,
+			var classNames, className, i, self,
+				type = typeof value,
 				isValidValue = type === "string" || Array.isArray( value );
-
-			if ( typeof stateVal === "boolean" && isValidValue ) {
-				return stateVal ? this.addClass( value ) : this.removeClass( value );
-			}
 
 			if ( isFunction( value ) ) {
 				return this.each( function( i ) {
@@ -8689,17 +8571,20 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				} );
 			}
 
-			return this.each( function() {
-				var className, i, self, classNames;
+			if ( typeof stateVal === "boolean" && isValidValue ) {
+				return stateVal ? this.addClass( value ) : this.removeClass( value );
+			}
 
+			classNames = classesToArray( value );
+
+			return this.each( function() {
 				if ( isValidValue ) {
 
 					// Toggle individual class names
-					i = 0;
 					self = jQuery( this );
-					classNames = classesToArray( value );
 
-					while ( ( className = classNames[ i++ ] ) ) {
+					for ( i = 0; i < classNames.length; i++ ) {
+						className = classNames[ i ];
 
 						// Check each className given, space separated list
 						if ( self.hasClass( className ) ) {
@@ -8833,7 +8718,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						val :
 
 						// Support: IE <=10 - 11 only
-						// option.text throws exceptions (#14686, #14858)
+						// option.text throws exceptions (trac-14686, trac-14858)
 						// Strip and collapse whitespace
 						// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
 						stripAndCollapse( jQuery.text( elem ) );
@@ -8860,7 +8745,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						option = options[ i ];
 
 						// Support: IE <=9 only
-						// IE8-9 doesn't update selected after form reset (#2551)
+						// IE8-9 doesn't update selected after form reset (trac-2551)
 						if ( ( option.selected || i === index ) &&
 
 								// Don't return options that are disabled or in a disabled optgroup
@@ -8934,9 +8819,39 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 
 	// Return jQuery for attributes-only inclusion
+	var location = window.location;
+
+	var nonce = { guid: Date.now() };
+
+	var rquery = ( /\?/ );
 
 
-	support.focusin = "onfocusin" in window;
+
+	// Cross-browser xml parsing
+	jQuery.parseXML = function( data ) {
+		var xml, parserErrorElem;
+		if ( !data || typeof data !== "string" ) {
+			return null;
+		}
+
+		// Support: IE 9 - 11 only
+		// IE throws on parseFromString with invalid input.
+		try {
+			xml = ( new window.DOMParser() ).parseFromString( data, "text/xml" );
+		} catch ( e ) {}
+
+		parserErrorElem = xml && xml.getElementsByTagName( "parsererror" )[ 0 ];
+		if ( !xml || parserErrorElem ) {
+			jQuery.error( "Invalid XML: " + (
+				parserErrorElem ?
+					jQuery.map( parserErrorElem.childNodes, function( el ) {
+						return el.textContent;
+					} ).join( "\n" ) :
+					data
+			) );
+		}
+		return xml;
+	};
 
 
 	var rfocusMorph = /^(?:focusinfocus|focusoutblur)$/,
@@ -9003,8 +8918,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				return;
 			}
 
-			// Determine event propagation path in advance, per W3C events spec (#9951)
-			// Bubble up to document, then to window; watch for a global ownerDocument var (#9724)
+			// Determine event propagation path in advance, per W3C events spec (trac-9951)
+			// Bubble up to document, then to window; watch for a global ownerDocument var (trac-9724)
 			if ( !onlyHandlers && !special.noBubble && !isWindow( elem ) ) {
 
 				bubbleType = special.delegateType || type;
@@ -9056,7 +8971,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 					acceptData( elem ) ) {
 
 					// Call a native DOM method on the target with the same name as the event.
-					// Don't do default actions on window, that's where global variables be (#6170)
+					// Don't do default actions on window, that's where global variables be (trac-6170)
 					if ( ontype && isFunction( elem[ type ] ) && !isWindow( elem ) ) {
 
 						// Don't re-trigger an onFOO event when we call its FOO() method
@@ -9122,85 +9037,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			}
 		}
 	} );
-
-
-	// Support: Firefox <=44
-	// Firefox doesn't have focus(in | out) events
-	// Related ticket - https://bugzilla.mozilla.org/show_bug.cgi?id=687787
-	//
-	// Support: Chrome <=48 - 49, Safari <=9.0 - 9.1
-	// focus(in | out) events fire after focus & blur events,
-	// which is spec violation - http://www.w3.org/TR/DOM-Level-3-Events/#events-focusevent-event-order
-	// Related ticket - https://bugs.chromium.org/p/chromium/issues/detail?id=449857
-	if ( !support.focusin ) {
-		jQuery.each( { focus: "focusin", blur: "focusout" }, function( orig, fix ) {
-
-			// Attach a single capturing handler on the document while someone wants focusin/focusout
-			var handler = function( event ) {
-				jQuery.event.simulate( fix, event.target, jQuery.event.fix( event ) );
-			};
-
-			jQuery.event.special[ fix ] = {
-				setup: function() {
-
-					// Handle: regular nodes (via `this.ownerDocument`), window
-					// (via `this.document`) & document (via `this`).
-					var doc = this.ownerDocument || this.document || this,
-						attaches = dataPriv.access( doc, fix );
-
-					if ( !attaches ) {
-						doc.addEventListener( orig, handler, true );
-					}
-					dataPriv.access( doc, fix, ( attaches || 0 ) + 1 );
-				},
-				teardown: function() {
-					var doc = this.ownerDocument || this.document || this,
-						attaches = dataPriv.access( doc, fix ) - 1;
-
-					if ( !attaches ) {
-						doc.removeEventListener( orig, handler, true );
-						dataPriv.remove( doc, fix );
-
-					} else {
-						dataPriv.access( doc, fix, attaches );
-					}
-				}
-			};
-		} );
-	}
-	var location = window.location;
-
-	var nonce = { guid: Date.now() };
-
-	var rquery = ( /\?/ );
-
-
-
-	// Cross-browser xml parsing
-	jQuery.parseXML = function( data ) {
-		var xml, parserErrorElem;
-		if ( !data || typeof data !== "string" ) {
-			return null;
-		}
-
-		// Support: IE 9 - 11 only
-		// IE throws on parseFromString with invalid input.
-		try {
-			xml = ( new window.DOMParser() ).parseFromString( data, "text/xml" );
-		} catch ( e ) {}
-
-		parserErrorElem = xml && xml.getElementsByTagName( "parsererror" )[ 0 ];
-		if ( !xml || parserErrorElem ) {
-			jQuery.error( "Invalid XML: " + (
-				parserErrorElem ?
-					jQuery.map( parserErrorElem.childNodes, function( el ) {
-						return el.textContent;
-					} ).join( "\n" ) :
-					data
-			) );
-		}
-		return xml;
-	};
 
 
 	var
@@ -9330,7 +9166,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		rantiCache = /([?&])_=[^&]*/,
 		rheaders = /^(.*?):[ \t]*([^\r\n]*)$/mg,
 
-		// #7653, #8125, #8152: local protocol detection
+		// trac-7653, trac-8125, trac-8152: local protocol detection
 		rlocalProtocol = /^(?:about|app|app-storage|.+-extension|file|res|widget):$/,
 		rnoContent = /^(?:GET|HEAD)$/,
 		rprotocol = /^\/\//,
@@ -9353,7 +9189,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		 */
 		transports = {},
 
-		// Avoid comment-prolog char sequence (#10098); must appease lint and evade compression
+		// Avoid comment-prolog char sequence (trac-10098); must appease lint and evade compression
 		allTypes = "*/".concat( "*" ),
 
 		// Anchor tag for parsing the document origin
@@ -9424,7 +9260,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	// A special extend for ajax options
 	// that takes "flat" options (not to be deep extended)
-	// Fixes #9887
+	// Fixes trac-9887
 	function ajaxExtend( target, src ) {
 		var key, deep,
 			flatOptions = jQuery.ajaxSettings.flatOptions || {};
@@ -9835,12 +9671,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			deferred.promise( jqXHR );
 
 			// Add protocol if not provided (prefilters might expect it)
-			// Handle falsy url in the settings object (#10093: consistency with old signature)
+			// Handle falsy url in the settings object (trac-10093: consistency with old signature)
 			// We also use the url parameter if available
 			s.url = ( ( url || s.url || location.href ) + "" )
 				.replace( rprotocol, location.protocol + "//" );
 
-			// Alias method option to type as per ticket #12004
+			// Alias method option to type as per ticket trac-12004
 			s.type = options.method || options.type || s.method || s.type;
 
 			// Extract dataTypes list
@@ -9883,7 +9719,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			}
 
 			// We can fire global events as of now if asked to
-			// Don't fire events if jQuery.event is undefined in an AMD-usage scenario (#15118)
+			// Don't fire events if jQuery.event is undefined in an AMD-usage scenario (trac-15118)
 			fireGlobals = jQuery.event && s.global;
 
 			// Watch for a new set of requests
@@ -9912,7 +9748,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 				if ( s.data && ( s.processData || typeof s.data === "string" ) ) {
 					cacheURL += ( rquery.test( cacheURL ) ? "&" : "?" ) + s.data;
 
-					// #9682: remove data so that it's not used in an eventual retry
+					// trac-9682: remove data so that it's not used in an eventual retry
 					delete s.data;
 				}
 
@@ -10185,7 +10021,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		return jQuery.ajax( {
 			url: url,
 
-			// Make this explicit, since user can override this through ajaxSetup (#11264)
+			// Make this explicit, since user can override this through ajaxSetup (trac-11264)
 			type: "GET",
 			dataType: "script",
 			cache: true,
@@ -10294,7 +10130,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 			0: 200,
 
 			// Support: IE <=9 only
-			// #1450: sometimes IE returns 1223 when it should be 204
+			// trac-1450: sometimes IE returns 1223 when it should be 204
 			1223: 204
 		},
 		xhrSupported = jQuery.ajaxSettings.xhr();
@@ -10366,7 +10202,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 									} else {
 										complete(
 
-											// File: protocol always yields status 0; see #8605, #14207
+											// File: protocol always yields status 0; see trac-8605, trac-14207
 											xhr.status,
 											xhr.statusText
 										);
@@ -10427,7 +10263,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 						xhr.send( options.hasContent && options.data || null );
 					} catch ( e ) {
 
-						// #14683: Only rethrow if this hasn't been notified as an error yet
+						// trac-14683: Only rethrow if this hasn't been notified as an error yet
 						if ( callback ) {
 							throw e;
 						}
@@ -11047,7 +10883,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 		},
 
 		hover: function( fnOver, fnOut ) {
-			return this.mouseenter( fnOver ).mouseleave( fnOut || fnOver );
+			return this
+				.on( "mouseenter", fnOver )
+				.on( "mouseleave", fnOut || fnOver );
 		}
 	} );
 
@@ -11071,7 +10909,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	// Support: Android <=4.0 only
 	// Make sure we trim BOM and NBSP
-	var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+	// Require that the "whitespace run" starts from a non-whitespace
+	// to avoid O(N^2) behavior when the engine would try matching "\s+$" at each space position.
+	var rtrim = /^[\s\uFEFF\xA0]+|([^\s\uFEFF\xA0])[\s\uFEFF\xA0]+$/g;
 
 	// Bind a function to a context, optionally partially applying any
 	// arguments.
@@ -11138,7 +10978,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	jQuery.trim = function( text ) {
 		return text == null ?
 			"" :
-			( text + "" ).replace( rtrim, "" );
+			( text + "" ).replace( rtrim, "$1" );
 	};
 
 
@@ -11186,8 +11026,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	};
 
 	// Expose jQuery and $ identifiers, even in AMD
-	// (#7102#comment:10, https://github.com/jquery/jquery/pull/557)
-	// and CommonJS for browser emulators (#13566)
+	// (trac-7102#comment:10, https://github.com/jquery/jquery/pull/557)
+	// and CommonJS for browser emulators (trac-13566)
 	if ( typeof noGlobal === "undefined" ) {
 		window.jQuery = window.$ = jQuery;
 	}
@@ -11212,19 +11052,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	    exports.noConflict = function () { global._ = current; return exports; };
 	  }()));
 	}(this, (function () {
-	  //     Underscore.js 1.13.2
+	  //     Underscore.js 1.13.6
 	  //     https://underscorejs.org
-	  //     (c) 2009-2021 Jeremy Ashkenas, Julian Gonggrijp, and DocumentCloud and Investigative Reporters & Editors
+	  //     (c) 2009-2022 Jeremy Ashkenas, Julian Gonggrijp, and DocumentCloud and Investigative Reporters & Editors
 	  //     Underscore may be freely distributed under the MIT license.
 
 	  // Current version.
-	  var VERSION = '1.13.2';
+	  var VERSION = '1.13.6';
 
 	  // Establish the root object, `window` (`self`) in the browser, `global`
 	  // on the server, or `this` in some virtual machines. We use `self`
 	  // instead of `window` for `WebWorker` support.
-	  var root = typeof self == 'object' && self.self === self && self ||
-	            typeof global == 'object' && global.global === global && global ||
+	  var root = (typeof self == 'object' && self.self === self && self) ||
+	            (typeof global == 'object' && global.global === global && global) ||
 	            Function('return this')() ||
 	            {};
 
@@ -11292,7 +11132,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Is a given variable an object?
 	  function isObject(obj) {
 	    var type = typeof obj;
-	    return type === 'function' || type === 'object' && !!obj;
+	    return type === 'function' || (type === 'object' && !!obj);
 	  }
 
 	  // Is a given value equal to null?
@@ -11469,7 +11309,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	    keys = emulatedSet(keys);
 	    var nonEnumIdx = nonEnumerableProps.length;
 	    var constructor = obj.constructor;
-	    var proto = isFunction$1(constructor) && constructor.prototype || ObjProto;
+	    var proto = (isFunction$1(constructor) && constructor.prototype) || ObjProto;
 
 	    // Constructor is a special case.
 	    var prop = 'constructor';
@@ -12672,7 +12512,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  function max(obj, iteratee, context) {
 	    var result = -Infinity, lastComputed = -Infinity,
 	        value, computed;
-	    if (iteratee == null || typeof iteratee == 'number' && typeof obj[0] != 'object' && obj != null) {
+	    if (iteratee == null || (typeof iteratee == 'number' && typeof obj[0] != 'object' && obj != null)) {
 	      obj = isArrayLike(obj) ? obj : values(obj);
 	      for (var i = 0, length = obj.length; i < length; i++) {
 	        value = obj[i];
@@ -12684,7 +12524,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	      iteratee = cb(iteratee, context);
 	      each(obj, function(v, index, list) {
 	        computed = iteratee(v, index, list);
-	        if (computed > lastComputed || computed === -Infinity && result === -Infinity) {
+	        if (computed > lastComputed || (computed === -Infinity && result === -Infinity)) {
 	          result = v;
 	          lastComputed = computed;
 	        }
@@ -12697,7 +12537,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  function min(obj, iteratee, context) {
 	    var result = Infinity, lastComputed = Infinity,
 	        value, computed;
-	    if (iteratee == null || typeof iteratee == 'number' && typeof obj[0] != 'object' && obj != null) {
+	    if (iteratee == null || (typeof iteratee == 'number' && typeof obj[0] != 'object' && obj != null)) {
 	      obj = isArrayLike(obj) ? obj : values(obj);
 	      for (var i = 0, length = obj.length; i < length; i++) {
 	        value = obj[i];
@@ -12709,7 +12549,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	      iteratee = cb(iteratee, context);
 	      each(obj, function(v, index, list) {
 	        computed = iteratee(v, index, list);
-	        if (computed < lastComputed || computed === Infinity && result === Infinity) {
+	        if (computed < lastComputed || (computed === Infinity && result === Infinity)) {
 	          result = v;
 	          lastComputed = computed;
 	        }
@@ -12977,7 +12817,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Complement of zip. Unzip accepts an array of arrays and groups
 	  // each array's elements on shared indices.
 	  function unzip(array) {
-	    var length = array && max(array, getLength).length || 0;
+	    var length = (array && max(array, getLength).length) || 0;
 	    var result = Array(length);
 
 	    for (var index = 0; index < length; index++) {
@@ -13253,17 +13093,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 /***/ (function(module, exports, __webpack_require__) {
 
 	/* @preserve
-	 * Leaflet 1.7.1, a JS library for interactive maps. http://leafletjs.com
-	 * (c) 2010-2019 Vladimir Agafonkin, (c) 2010-2011 CloudMade
+	 * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
+	 * (c) 2010-2023 Vladimir Agafonkin, (c) 2010-2011 CloudMade
 	 */
 
 	(function (global, factory) {
 	   true ? factory(exports) :
 	  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	  (factory((global.L = {})));
-	}(this, (function (exports) { 'use strict';
+	  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.leaflet = {}));
+	})(this, (function (exports) { 'use strict';
 
-	  var version = "1.7.1";
+	  var version = "1.9.4";
 
 	  /*
 	   * @namespace Util
@@ -13287,7 +13127,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // @function create(proto: Object, properties?: Object): Object
 	  // Compatibility polyfill for [Object.create](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object/create)
-	  var create = Object.create || (function () {
+	  var create$2 = Object.create || (function () {
 	  	function F() {}
 	  	return function (proto) {
 	  		F.prototype = proto;
@@ -13319,10 +13159,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // @function stamp(obj: Object): Number
 	  // Returns the unique ID of an object, assigning it one if it doesn't have it.
 	  function stamp(obj) {
-	  	/*eslint-disable */
-	  	obj._leaflet_id = obj._leaflet_id || ++lastId;
+	  	if (!('_leaflet_id' in obj)) {
+	  		obj['_leaflet_id'] = ++lastId;
+	  	}
 	  	return obj._leaflet_id;
-	  	/* eslint-enable */
 	  }
 
 	  // @function throttle(fn: Function, time: Number, context: Object): Function
@@ -13375,10 +13215,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Returns a function which always returns `false`.
 	  function falseFn() { return false; }
 
-	  // @function formatNum(num: Number, digits?: Number): Number
-	  // Returns the number `num` rounded to `digits` decimals, or to 6 decimals by default.
-	  function formatNum(num, digits) {
-	  	var pow = Math.pow(10, (digits === undefined ? 6 : digits));
+	  // @function formatNum(num: Number, precision?: Number|false): Number
+	  // Returns the number `num` rounded with specified `precision`.
+	  // The default `precision` value is 6 decimal places.
+	  // `false` can be passed to skip any processing (can be useful to avoid round-off errors).
+	  function formatNum(num, precision) {
+	  	if (precision === false) { return num; }
+	  	var pow = Math.pow(10, precision === undefined ? 6 : precision);
 	  	return Math.round(num * pow) / pow;
 	  }
 
@@ -13398,7 +13241,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Merges the given properties to the `options` of the `obj` object, returning the resulting options. See `Class options`. Has an `L.setOptions` shortcut.
 	  function setOptions(obj, options) {
 	  	if (!Object.prototype.hasOwnProperty.call(obj, 'options')) {
-	  		obj.options = obj.options ? create(obj.options) : {};
+	  		obj.options = obj.options ? create$2(obj.options) : {};
 	  	}
 	  	for (var i in options) {
 	  		obj.options[i] = options[i];
@@ -13419,7 +13262,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return ((!existingUrl || existingUrl.indexOf('?') === -1) ? '?' : '&') + params.join('&');
 	  }
 
-	  var templateRe = /\{ *([\w_-]+) *\}/g;
+	  var templateRe = /\{ *([\w_ -]+) *\}/g;
 
 	  // @function template(str: String, data: Object): String
 	  // Simple templating facility, accepts a template string of the form `'Hello {a}, {b}'`
@@ -13461,7 +13304,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // mobile devices (by setting image `src` to this string).
 	  var emptyImageUrl = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 
-	  // inspired by http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+	  // inspired by https://paulirish.com/2011/requestanimationframe-for-smart-animating/
 
 	  function getPrefixed(name) {
 	  	return window['webkit' + name] || window['moz' + name] || window['ms' + name];
@@ -13504,11 +13347,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	}
 	  }
 
-	  var Util = ({
+	  var Util = {
+	    __proto__: null,
 	    extend: extend,
-	    create: create,
+	    create: create$2,
 	    bind: bind,
-	    lastId: lastId,
+	    get lastId () { return lastId; },
 	    stamp: stamp,
 	    throttle: throttle,
 	    wrapNum: wrapNum,
@@ -13526,7 +13370,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	    cancelFn: cancelFn,
 	    requestAnimFrame: requestAnimFrame,
 	    cancelAnimFrame: cancelAnimFrame
-	  });
+	  };
 
 	  // @class Class
 	  // @aka L.Class
@@ -13545,6 +13389,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// Returns a Javascript function that is a class constructor (to be called with `new`).
 	  	var NewClass = function () {
 
+	  		setOptions(this);
+
 	  		// call the constructor
 	  		if (this.initialize) {
 	  			this.initialize.apply(this, arguments);
@@ -13556,7 +13402,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	var parentProto = NewClass.__super__ = this.prototype;
 
-	  	var proto = create(parentProto);
+	  	var proto = create$2(parentProto);
 	  	proto.constructor = NewClass;
 
 	  	NewClass.prototype = proto;
@@ -13571,23 +13417,24 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// mix static properties into the class
 	  	if (props.statics) {
 	  		extend(NewClass, props.statics);
-	  		delete props.statics;
 	  	}
 
 	  	// mix includes into the prototype
 	  	if (props.includes) {
 	  		checkDeprecatedMixinEvents(props.includes);
 	  		extend.apply(null, [proto].concat(props.includes));
-	  		delete props.includes;
-	  	}
-
-	  	// merge options
-	  	if (proto.options) {
-	  		props.options = extend(create(proto.options), props.options);
 	  	}
 
 	  	// mix given properties into the prototype
 	  	extend(proto, props);
+	  	delete proto.statics;
+	  	delete proto.includes;
+
+	  	// merge options
+	  	if (proto.options) {
+	  		proto.options = parentProto.options ? create$2(parentProto.options) : {};
+	  		extend(proto.options, props.options);
+	  	}
 
 	  	proto._initHooks = [];
 
@@ -13614,7 +13461,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // @function include(properties: Object): this
 	  // [Includes a mixin](#class-includes) into the current class.
 	  Class.include = function (props) {
+	  	var parentOptions = this.prototype.options;
 	  	extend(this.prototype, props);
+	  	if (props.options) {
+	  		this.prototype.options = parentOptions;
+	  		this.mergeOptions(props.options);
+	  	}
 	  	return this;
 	  };
 
@@ -13640,6 +13492,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  };
 
 	  function checkDeprecatedMixinEvents(includes) {
+	  	/* global L: true */
 	  	if (typeof L === 'undefined' || !L || !L.Mixin) { return; }
 
 	  	includes = isArray(includes) ? includes : [includes];
@@ -13721,7 +13574,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	 */
 	  	off: function (types, fn, context) {
 
-	  		if (!types) {
+	  		if (!arguments.length) {
 	  			// clear all listeners if called without arguments
 	  			delete this._events;
 
@@ -13733,8 +13586,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		} else {
 	  			types = splitWords(types);
 
+	  			var removeAll = arguments.length === 1;
 	  			for (var i = 0, len = types.length; i < len; i++) {
-	  				this._off(types[i], fn, context);
+	  				if (removeAll) {
+	  					this._off(types[i]);
+	  				} else {
+	  					this._off(types[i], fn, context);
+	  				}
 	  			}
 	  		}
 
@@ -13742,31 +13600,30 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// attach listener (without syntactic sugar now)
-	  	_on: function (type, fn, context) {
-	  		this._events = this._events || {};
+	  	_on: function (type, fn, context, _once) {
+	  		if (typeof fn !== 'function') {
+	  			console.warn('wrong listener type: ' + typeof fn);
+	  			return;
+	  		}
 
-	  		/* get/init listeners for type */
-	  		var typeListeners = this._events[type];
-	  		if (!typeListeners) {
-	  			typeListeners = [];
-	  			this._events[type] = typeListeners;
+	  		// check if fn already there
+	  		if (this._listens(type, fn, context) !== false) {
+	  			return;
 	  		}
 
 	  		if (context === this) {
 	  			// Less memory footprint.
 	  			context = undefined;
 	  		}
-	  		var newListener = {fn: fn, ctx: context},
-	  		    listeners = typeListeners;
 
-	  		// check if fn already there
-	  		for (var i = 0, len = listeners.length; i < len; i++) {
-	  			if (listeners[i].fn === fn && listeners[i].ctx === context) {
-	  				return;
-	  			}
+	  		var newListener = {fn: fn, ctx: context};
+	  		if (_once) {
+	  			newListener.once = true;
 	  		}
 
-	  		listeners.push(newListener);
+	  		this._events = this._events || {};
+	  		this._events[type] = this._events[type] || [];
+	  		this._events[type].push(newListener);
 	  	},
 
 	  	_off: function (type, fn, context) {
@@ -13774,53 +13631,50 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		    i,
 	  		    len;
 
-	  		if (!this._events) { return; }
+	  		if (!this._events) {
+	  			return;
+	  		}
 
 	  		listeners = this._events[type];
-
 	  		if (!listeners) {
 	  			return;
 	  		}
 
-	  		if (!fn) {
-	  			// Set all removed listeners to noop so they are not called if remove happens in fire
-	  			for (i = 0, len = listeners.length; i < len; i++) {
-	  				listeners[i].fn = falseFn;
+	  		if (arguments.length === 1) { // remove all
+	  			if (this._firingCount) {
+	  				// Set all removed listeners to noop
+	  				// so they are not called if remove happens in fire
+	  				for (i = 0, len = listeners.length; i < len; i++) {
+	  					listeners[i].fn = falseFn;
+	  				}
 	  			}
 	  			// clear all listeners for a type if function isn't specified
 	  			delete this._events[type];
 	  			return;
 	  		}
 
-	  		if (context === this) {
-	  			context = undefined;
+	  		if (typeof fn !== 'function') {
+	  			console.warn('wrong listener type: ' + typeof fn);
+	  			return;
 	  		}
 
-	  		if (listeners) {
+	  		// find fn and remove it
+	  		var index = this._listens(type, fn, context);
+	  		if (index !== false) {
+	  			var listener = listeners[index];
+	  			if (this._firingCount) {
+	  				// set the removed listener to noop so that's not called if remove happens in fire
+	  				listener.fn = falseFn;
 
-	  			// find fn and remove it
-	  			for (i = 0, len = listeners.length; i < len; i++) {
-	  				var l = listeners[i];
-	  				if (l.ctx !== context) { continue; }
-	  				if (l.fn === fn) {
-
-	  					// set the removed listener to noop so that's not called if remove happens in fire
-	  					l.fn = falseFn;
-
-	  					if (this._firingCount) {
-	  						/* copy array in case events are being fired */
-	  						this._events[type] = listeners = listeners.slice();
-	  					}
-	  					listeners.splice(i, 1);
-
-	  					return;
-	  				}
+	  				/* copy array in case events are being fired */
+	  				this._events[type] = listeners = listeners.slice();
 	  			}
+	  			listeners.splice(index, 1);
 	  		}
 	  	},
 
 	  	// @method fire(type: String, data?: Object, propagate?: Boolean): this
-	  	// Fires an event of the specified type. You can optionally provide an data
+	  	// Fires an event of the specified type. You can optionally provide a data
 	  	// object — the first argument of the listener function will contain its
 	  	// properties. The event can optionally be propagated to event parents.
 	  	fire: function (type, data, propagate) {
@@ -13834,12 +13688,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		if (this._events) {
 	  			var listeners = this._events[type];
-
 	  			if (listeners) {
 	  				this._firingCount = (this._firingCount + 1) || 1;
 	  				for (var i = 0, len = listeners.length; i < len; i++) {
 	  					var l = listeners[i];
-	  					l.fn.call(l.ctx || this, event);
+	  					// off overwrites l.fn, so we need to copy fn to a var
+	  					var fn = l.fn;
+	  					if (l.once) {
+	  						this.off(type, fn, l.ctx);
+	  					}
+	  					fn.call(l.ctx || this, event);
 	  				}
 
 	  				this._firingCount--;
@@ -13854,42 +13712,86 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this;
 	  	},
 
-	  	// @method listens(type: String): Boolean
+	  	// @method listens(type: String, propagate?: Boolean): Boolean
+	  	// @method listens(type: String, fn: Function, context?: Object, propagate?: Boolean): Boolean
 	  	// Returns `true` if a particular event type has any listeners attached to it.
-	  	listens: function (type, propagate) {
+	  	// The verification can optionally be propagated, it will return `true` if parents have the listener attached to it.
+	  	listens: function (type, fn, context, propagate) {
+	  		if (typeof type !== 'string') {
+	  			console.warn('"string" type argument expected');
+	  		}
+
+	  		// we don't overwrite the input `fn` value, because we need to use it for propagation
+	  		var _fn = fn;
+	  		if (typeof fn !== 'function') {
+	  			propagate = !!fn;
+	  			_fn = undefined;
+	  			context = undefined;
+	  		}
+
 	  		var listeners = this._events && this._events[type];
-	  		if (listeners && listeners.length) { return true; }
+	  		if (listeners && listeners.length) {
+	  			if (this._listens(type, _fn, context) !== false) {
+	  				return true;
+	  			}
+	  		}
 
 	  		if (propagate) {
 	  			// also check parents for listeners if event propagates
 	  			for (var id in this._eventParents) {
-	  				if (this._eventParents[id].listens(type, propagate)) { return true; }
+	  				if (this._eventParents[id].listens(type, fn, context, propagate)) { return true; }
 	  			}
 	  		}
 	  		return false;
+	  	},
+
+	  	// returns the index (number) or false
+	  	_listens: function (type, fn, context) {
+	  		if (!this._events) {
+	  			return false;
+	  		}
+
+	  		var listeners = this._events[type] || [];
+	  		if (!fn) {
+	  			return !!listeners.length;
+	  		}
+
+	  		if (context === this) {
+	  			// Less memory footprint.
+	  			context = undefined;
+	  		}
+
+	  		for (var i = 0, len = listeners.length; i < len; i++) {
+	  			if (listeners[i].fn === fn && listeners[i].ctx === context) {
+	  				return i;
+	  			}
+	  		}
+	  		return false;
+
 	  	},
 
 	  	// @method once(…): this
 	  	// Behaves as [`on(…)`](#evented-on), except the listener will only get fired once and then removed.
 	  	once: function (types, fn, context) {
 
+	  		// types can be a map of types/handlers
 	  		if (typeof types === 'object') {
 	  			for (var type in types) {
-	  				this.once(type, types[type], fn);
+	  				// we don't process space-separated events here for performance;
+	  				// it's a hot path since Layer uses the on(obj) syntax
+	  				this._on(type, types[type], fn, true);
 	  			}
-	  			return this;
+
+	  		} else {
+	  			// types can be a string of space-separated words
+	  			types = splitWords(types);
+
+	  			for (var i = 0, len = types.length; i < len; i++) {
+	  				this._on(types[i], fn, context, true);
+	  			}
 	  		}
 
-	  		var handler = bind(function () {
-	  			this
-	  			    .off(types, fn, context)
-	  			    .off(types, handler, context);
-	  		}, this);
-
-	  		// add a listener that's executed once and removed after that
-	  		return this
-	  		    .on(types, fn, context)
-	  		    .on(types, handler, context);
+	  		return this;
 	  	},
 
 	  	// @method addEventParent(obj: Evented): this
@@ -14205,21 +14107,36 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  Bounds.prototype = {
 	  	// @method extend(point: Point): this
 	  	// Extends the bounds to contain the given point.
-	  	extend: function (point) { // (Point)
-	  		point = toPoint(point);
+
+	  	// @alternative
+	  	// @method extend(otherBounds: Bounds): this
+	  	// Extend the bounds to contain the given bounds
+	  	extend: function (obj) {
+	  		var min2, max2;
+	  		if (!obj) { return this; }
+
+	  		if (obj instanceof Point || typeof obj[0] === 'number' || 'x' in obj) {
+	  			min2 = max2 = toPoint(obj);
+	  		} else {
+	  			obj = toBounds(obj);
+	  			min2 = obj.min;
+	  			max2 = obj.max;
+
+	  			if (!min2 || !max2) { return this; }
+	  		}
 
 	  		// @property min: Point
 	  		// The top left corner of the rectangle.
 	  		// @property max: Point
 	  		// The bottom right corner of the rectangle.
 	  		if (!this.min && !this.max) {
-	  			this.min = point.clone();
-	  			this.max = point.clone();
+	  			this.min = min2.clone();
+	  			this.max = max2.clone();
 	  		} else {
-	  			this.min.x = Math.min(point.x, this.min.x);
-	  			this.max.x = Math.max(point.x, this.max.x);
-	  			this.min.y = Math.min(point.y, this.min.y);
-	  			this.max.y = Math.max(point.y, this.max.y);
+	  			this.min.x = Math.min(min2.x, this.min.x);
+	  			this.max.x = Math.max(max2.x, this.max.x);
+	  			this.min.y = Math.min(min2.y, this.min.y);
+	  			this.max.y = Math.max(max2.y, this.max.y);
 	  		}
 	  		return this;
 	  	},
@@ -14227,7 +14144,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method getCenter(round?: Boolean): Point
 	  	// Returns the center point of the bounds.
 	  	getCenter: function (round) {
-	  		return new Point(
+	  		return toPoint(
 	  		        (this.min.x + this.max.x) / 2,
 	  		        (this.min.y + this.max.y) / 2, round);
 	  	},
@@ -14235,13 +14152,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method getBottomLeft(): Point
 	  	// Returns the bottom-left point of the bounds.
 	  	getBottomLeft: function () {
-	  		return new Point(this.min.x, this.max.y);
+	  		return toPoint(this.min.x, this.max.y);
 	  	},
 
 	  	// @method getTopRight(): Point
 	  	// Returns the top-right point of the bounds.
 	  	getTopRight: function () { // -> Point
-	  		return new Point(this.max.x, this.min.y);
+	  		return toPoint(this.max.x, this.min.y);
 	  	},
 
 	  	// @method getTopLeft(): Point
@@ -14321,9 +14238,40 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return xOverlaps && yOverlaps;
 	  	},
 
+	  	// @method isValid(): Boolean
+	  	// Returns `true` if the bounds are properly initialized.
 	  	isValid: function () {
 	  		return !!(this.min && this.max);
-	  	}
+	  	},
+
+
+	  	// @method pad(bufferRatio: Number): Bounds
+	  	// Returns bounds created by extending or retracting the current bounds by a given ratio in each direction.
+	  	// For example, a ratio of 0.5 extends the bounds by 50% in each direction.
+	  	// Negative values will retract the bounds.
+	  	pad: function (bufferRatio) {
+	  		var min = this.min,
+	  		max = this.max,
+	  		heightBuffer = Math.abs(min.x - max.x) * bufferRatio,
+	  		widthBuffer = Math.abs(min.y - max.y) * bufferRatio;
+
+
+	  		return toBounds(
+	  			toPoint(min.x - heightBuffer, min.y - widthBuffer),
+	  			toPoint(max.x + heightBuffer, max.y + widthBuffer));
+	  	},
+
+
+	  	// @method equals(otherBounds: Bounds): Boolean
+	  	// Returns `true` if the rectangle is equivalent to the given bounds.
+	  	equals: function (bounds) {
+	  		if (!bounds) { return false; }
+
+	  		bounds = toBounds(bounds);
+
+	  		return this.min.equals(bounds.getTopLeft()) &&
+	  			this.max.equals(bounds.getBottomRight());
+	  	},
 	  };
 
 
@@ -14729,7 +14677,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * Object that defines coordinate reference systems for projecting
 	   * geographical points into pixel (screen) coordinates and back (and to
 	   * coordinates in other units for [WMS](https://en.wikipedia.org/wiki/Web_Map_Service) services). See
-	   * [spatial reference system](http://en.wikipedia.org/wiki/Coordinate_reference_system).
+	   * [spatial reference system](https://en.wikipedia.org/wiki/Spatial_reference_system).
 	   *
 	   * Leaflet defines the most usual CRSs by default. If you want to use a
 	   * CRS not defined by default, take a look at the
@@ -14872,7 +14820,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	// Mean Earth Radius, as recommended for use by
 	  	// the International Union of Geodesy and Geophysics,
-	  	// see http://rosettacode.org/wiki/Haversine_formula
+	  	// see https://rosettacode.org/wiki/Haversine_formula
 	  	R: 6371000,
 
 	  	// distance between two geographical points using spherical law of cosines approximation
@@ -15056,7 +15004,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		}
 
 	  		// closes the ring for polygons; "x" is VML syntax
-	  		str += closed ? (svg ? 'z' : 'x') : '';
+	  		str += closed ? (Browser.svg ? 'z' : 'x') : '';
 	  	}
 
 	  	// SVG complains about empty path strings
@@ -15078,7 +15026,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * ```
 	   */
 
-	  var style$1 = document.documentElement.style;
+	  var style = document.documentElement.style;
 
 	  // @property ie: Boolean; `true` for all Internet Explorer versions (not Edge).
 	  var ie = 'ActiveXObject' in window;
@@ -15094,15 +15042,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  var webkit = userAgentContains('webkit');
 
 	  // @property android: Boolean
-	  // `true` for any browser running on an Android platform.
+	  // **Deprecated.** `true` for any browser running on an Android platform.
 	  var android = userAgentContains('android');
 
-	  // @property android23: Boolean; `true` for browsers running on Android 2 or Android 3.
+	  // @property android23: Boolean; **Deprecated.** `true` for browsers running on Android 2 or Android 3.
 	  var android23 = userAgentContains('android 2') || userAgentContains('android 3');
 
 	  /* See https://stackoverflow.com/a/17961266 for details on detecting stock Android */
 	  var webkitVer = parseInt(/WebKit\/([0-9]+)|$/.exec(navigator.userAgent)[1], 10); // also matches AppleWebKit
-	  // @property androidStock: Boolean; `true` for the Android stock browser (i.e. not Chrome)
+	  // @property androidStock: Boolean; **Deprecated.** `true` for the Android stock browser (i.e. not Chrome)
 	  var androidStock = android && userAgentContains('Google') && webkitVer < 537 && !('AudioNode' in window);
 
 	  // @property opera: Boolean; `true` for the Opera browser
@@ -15121,19 +15069,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // @property opera12: Boolean
 	  // `true` for the Opera browser supporting CSS transforms (version 12 or later).
-	  var opera12 = 'OTransition' in style$1;
+	  var opera12 = 'OTransition' in style;
 
 	  // @property win: Boolean; `true` when the browser is running in a Windows platform
 	  var win = navigator.platform.indexOf('Win') === 0;
 
 	  // @property ie3d: Boolean; `true` for all Internet Explorer versions supporting CSS transforms.
-	  var ie3d = ie && ('transition' in style$1);
+	  var ie3d = ie && ('transition' in style);
 
 	  // @property webkit3d: Boolean; `true` for webkit-based browsers supporting CSS transforms.
 	  var webkit3d = ('WebKitCSSMatrix' in window) && ('m11' in new window.WebKitCSSMatrix()) && !android23;
 
 	  // @property gecko3d: Boolean; `true` for gecko-based browsers supporting CSS transforms.
-	  var gecko3d = 'MozPerspective' in style$1;
+	  var gecko3d = 'MozPerspective' in style;
 
 	  // @property any3d: Boolean
 	  // `true` for all browsers supporting CSS transforms.
@@ -15157,13 +15105,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // `true` for all browsers supporting [pointer events](https://msdn.microsoft.com/en-us/library/dn433244%28v=vs.85%29.aspx).
 	  var pointer = !!(window.PointerEvent || msPointer);
 
-	  // @property touch: Boolean
+	  // @property touchNative: Boolean
 	  // `true` for all browsers supporting [touch events](https://developer.mozilla.org/docs/Web/API/Touch_events).
-	  // This does not necessarily mean that the browser is running in a computer with
+	  // **This does not necessarily mean** that the browser is running in a computer with
 	  // a touchscreen, it only means that the browser is capable of understanding
 	  // touch events.
-	  var touch = !window.L_NO_TOUCH && (pointer || 'ontouchstart' in window ||
-	  		(window.DocumentTouch && document instanceof window.DocumentTouch));
+	  var touchNative = 'ontouchstart' in window || !!window.TouchEvent;
+
+	  // @property touch: Boolean
+	  // `true` for all browsers supporting either [touch](#browser-touch) or [pointer](#browser-pointer) events.
+	  // Note: pointer events will be preferred (if available), and processed for all `touch*` listeners.
+	  var touch = !window.L_NO_TOUCH && (touchNative || pointer);
 
 	  // @property mobileOpera: Boolean; `true` for the Opera browser in a mobile device.
 	  var mobileOpera = mobile && opera;
@@ -15196,17 +15148,23 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // @property canvas: Boolean
 	  // `true` when the browser supports [`<canvas>`](https://developer.mozilla.org/docs/Web/API/Canvas_API).
-	  var canvas = (function () {
+	  var canvas$1 = (function () {
 	  	return !!document.createElement('canvas').getContext;
 	  }());
 
 	  // @property svg: Boolean
 	  // `true` when the browser supports [SVG](https://developer.mozilla.org/docs/Web/SVG).
-	  var svg = !!(document.createElementNS && svgCreate('svg').createSVGRect);
+	  var svg$1 = !!(document.createElementNS && svgCreate('svg').createSVGRect);
+
+	  var inlineSvg = !!svg$1 && (function () {
+	  	var div = document.createElement('div');
+	  	div.innerHTML = '<svg/>';
+	  	return (div.firstChild && div.firstChild.namespaceURI) === 'http://www.w3.org/2000/svg';
+	  })();
 
 	  // @property vml: Boolean
 	  // `true` if the browser supports [VML](https://en.wikipedia.org/wiki/Vector_Markup_Language).
-	  var vml = !svg && (function () {
+	  var vml = !svg$1 && (function () {
 	  	try {
 	  		var div = document.createElement('div');
 	  		div.innerHTML = '<v:shape adj="1"/>';
@@ -15222,114 +15180,100 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  }());
 
 
+	  // @property mac: Boolean; `true` when the browser is running in a Mac platform
+	  var mac = navigator.platform.indexOf('Mac') === 0;
+
+	  // @property mac: Boolean; `true` when the browser is running in a Linux platform
+	  var linux = navigator.platform.indexOf('Linux') === 0;
+
 	  function userAgentContains(str) {
 	  	return navigator.userAgent.toLowerCase().indexOf(str) >= 0;
 	  }
 
-	  var Browser = ({
-	    ie: ie,
-	    ielt9: ielt9,
-	    edge: edge,
-	    webkit: webkit,
-	    android: android,
-	    android23: android23,
-	    androidStock: androidStock,
-	    opera: opera,
-	    chrome: chrome,
-	    gecko: gecko,
-	    safari: safari,
-	    phantom: phantom,
-	    opera12: opera12,
-	    win: win,
-	    ie3d: ie3d,
-	    webkit3d: webkit3d,
-	    gecko3d: gecko3d,
-	    any3d: any3d,
-	    mobile: mobile,
-	    mobileWebkit: mobileWebkit,
-	    mobileWebkit3d: mobileWebkit3d,
-	    msPointer: msPointer,
-	    pointer: pointer,
-	    touch: touch,
-	    mobileOpera: mobileOpera,
-	    mobileGecko: mobileGecko,
-	    retina: retina,
-	    passiveEvents: passiveEvents,
-	    canvas: canvas,
-	    svg: svg,
-	    vml: vml
-	  });
+
+	  var Browser = {
+	  	ie: ie,
+	  	ielt9: ielt9,
+	  	edge: edge,
+	  	webkit: webkit,
+	  	android: android,
+	  	android23: android23,
+	  	androidStock: androidStock,
+	  	opera: opera,
+	  	chrome: chrome,
+	  	gecko: gecko,
+	  	safari: safari,
+	  	phantom: phantom,
+	  	opera12: opera12,
+	  	win: win,
+	  	ie3d: ie3d,
+	  	webkit3d: webkit3d,
+	  	gecko3d: gecko3d,
+	  	any3d: any3d,
+	  	mobile: mobile,
+	  	mobileWebkit: mobileWebkit,
+	  	mobileWebkit3d: mobileWebkit3d,
+	  	msPointer: msPointer,
+	  	pointer: pointer,
+	  	touch: touch,
+	  	touchNative: touchNative,
+	  	mobileOpera: mobileOpera,
+	  	mobileGecko: mobileGecko,
+	  	retina: retina,
+	  	passiveEvents: passiveEvents,
+	  	canvas: canvas$1,
+	  	svg: svg$1,
+	  	vml: vml,
+	  	inlineSvg: inlineSvg,
+	  	mac: mac,
+	  	linux: linux
+	  };
 
 	  /*
 	   * Extends L.DomEvent to provide touch support for Internet Explorer and Windows-based devices.
 	   */
 
-
-	  var POINTER_DOWN =   msPointer ? 'MSPointerDown'   : 'pointerdown';
-	  var POINTER_MOVE =   msPointer ? 'MSPointerMove'   : 'pointermove';
-	  var POINTER_UP =     msPointer ? 'MSPointerUp'     : 'pointerup';
-	  var POINTER_CANCEL = msPointer ? 'MSPointerCancel' : 'pointercancel';
-
+	  var POINTER_DOWN =   Browser.msPointer ? 'MSPointerDown'   : 'pointerdown';
+	  var POINTER_MOVE =   Browser.msPointer ? 'MSPointerMove'   : 'pointermove';
+	  var POINTER_UP =     Browser.msPointer ? 'MSPointerUp'     : 'pointerup';
+	  var POINTER_CANCEL = Browser.msPointer ? 'MSPointerCancel' : 'pointercancel';
+	  var pEvent = {
+	  	touchstart  : POINTER_DOWN,
+	  	touchmove   : POINTER_MOVE,
+	  	touchend    : POINTER_UP,
+	  	touchcancel : POINTER_CANCEL
+	  };
+	  var handle = {
+	  	touchstart  : _onPointerStart,
+	  	touchmove   : _handlePointer,
+	  	touchend    : _handlePointer,
+	  	touchcancel : _handlePointer
+	  };
 	  var _pointers = {};
 	  var _pointerDocListener = false;
 
 	  // Provides a touch events wrapper for (ms)pointer events.
-	  // ref http://www.w3.org/TR/pointerevents/ https://www.w3.org/Bugs/Public/show_bug.cgi?id=22890
+	  // ref https://www.w3.org/TR/pointerevents/ https://www.w3.org/Bugs/Public/show_bug.cgi?id=22890
 
-	  function addPointerListener(obj, type, handler, id) {
+	  function addPointerListener(obj, type, handler) {
 	  	if (type === 'touchstart') {
-	  		_addPointerStart(obj, handler, id);
-
-	  	} else if (type === 'touchmove') {
-	  		_addPointerMove(obj, handler, id);
-
-	  	} else if (type === 'touchend') {
-	  		_addPointerEnd(obj, handler, id);
+	  		_addPointerDocListener();
 	  	}
-
-	  	return this;
+	  	if (!handle[type]) {
+	  		console.warn('wrong event specified:', type);
+	  		return falseFn;
+	  	}
+	  	handler = handle[type].bind(this, handler);
+	  	obj.addEventListener(pEvent[type], handler, false);
+	  	return handler;
 	  }
 
-	  function removePointerListener(obj, type, id) {
-	  	var handler = obj['_leaflet_' + type + id];
-
-	  	if (type === 'touchstart') {
-	  		obj.removeEventListener(POINTER_DOWN, handler, false);
-
-	  	} else if (type === 'touchmove') {
-	  		obj.removeEventListener(POINTER_MOVE, handler, false);
-
-	  	} else if (type === 'touchend') {
-	  		obj.removeEventListener(POINTER_UP, handler, false);
-	  		obj.removeEventListener(POINTER_CANCEL, handler, false);
+	  function removePointerListener(obj, type, handler) {
+	  	if (!pEvent[type]) {
+	  		console.warn('wrong event specified:', type);
+	  		return;
 	  	}
-
-	  	return this;
-	  }
-
-	  function _addPointerStart(obj, handler, id) {
-	  	var onDown = bind(function (e) {
-	  		// IE10 specific: MsTouch needs preventDefault. See #2000
-	  		if (e.MSPOINTER_TYPE_TOUCH && e.pointerType === e.MSPOINTER_TYPE_TOUCH) {
-	  			preventDefault(e);
-	  		}
-
-	  		_handlePointer(e, handler);
-	  	});
-
-	  	obj['_leaflet_touchstart' + id] = onDown;
-	  	obj.addEventListener(POINTER_DOWN, onDown, false);
-
-	  	// need to keep track of what pointers and how many are active to provide e.touches emulation
-	  	if (!_pointerDocListener) {
-	  		// we listen document as any drags that end by moving the touch off the screen get fired there
-	  		document.addEventListener(POINTER_DOWN, _globalPointerDown, true);
-	  		document.addEventListener(POINTER_MOVE, _globalPointerMove, true);
-	  		document.addEventListener(POINTER_UP, _globalPointerUp, true);
-	  		document.addEventListener(POINTER_CANCEL, _globalPointerUp, true);
-
-	  		_pointerDocListener = true;
-	  	}
+	  	obj.removeEventListener(pEvent[type], handler, false);
 	  }
 
 	  function _globalPointerDown(e) {
@@ -15346,7 +15290,22 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	delete _pointers[e.pointerId];
 	  }
 
-	  function _handlePointer(e, handler) {
+	  function _addPointerDocListener() {
+	  	// need to keep track of what pointers and how many are active to provide e.touches emulation
+	  	if (!_pointerDocListener) {
+	  		// we listen document as any drags that end by moving the touch off the screen get fired there
+	  		document.addEventListener(POINTER_DOWN, _globalPointerDown, true);
+	  		document.addEventListener(POINTER_MOVE, _globalPointerMove, true);
+	  		document.addEventListener(POINTER_UP, _globalPointerUp, true);
+	  		document.addEventListener(POINTER_CANCEL, _globalPointerUp, true);
+
+	  		_pointerDocListener = true;
+	  	}
+	  }
+
+	  function _handlePointer(handler, e) {
+	  	if (e.pointerType === (e.MSPOINTER_TYPE_MOUSE || 'mouse')) { return; }
+
 	  	e.touches = [];
 	  	for (var i in _pointers) {
 	  		e.touches.push(_pointers[i]);
@@ -15356,108 +15315,102 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	handler(e);
 	  }
 
-	  function _addPointerMove(obj, handler, id) {
-	  	var onMove = function (e) {
-	  		// don't fire touch moves when mouse isn't down
-	  		if ((e.pointerType === (e.MSPOINTER_TYPE_MOUSE || 'mouse')) && e.buttons === 0) {
-	  			return;
-	  		}
-
-	  		_handlePointer(e, handler);
-	  	};
-
-	  	obj['_leaflet_touchmove' + id] = onMove;
-	  	obj.addEventListener(POINTER_MOVE, onMove, false);
-	  }
-
-	  function _addPointerEnd(obj, handler, id) {
-	  	var onUp = function (e) {
-	  		_handlePointer(e, handler);
-	  	};
-
-	  	obj['_leaflet_touchend' + id] = onUp;
-	  	obj.addEventListener(POINTER_UP, onUp, false);
-	  	obj.addEventListener(POINTER_CANCEL, onUp, false);
+	  function _onPointerStart(handler, e) {
+	  	// IE10 specific: MsTouch needs preventDefault. See #2000
+	  	if (e.MSPOINTER_TYPE_TOUCH && e.pointerType === e.MSPOINTER_TYPE_TOUCH) {
+	  		preventDefault(e);
+	  	}
+	  	_handlePointer(handler, e);
 	  }
 
 	  /*
 	   * Extends the event handling code with double tap support for mobile browsers.
+	   *
+	   * Note: currently most browsers fire native dblclick, with only a few exceptions
+	   * (see https://github.com/Leaflet/Leaflet/issues/7012#issuecomment-595087386)
 	   */
 
-	  var _touchstart = msPointer ? 'MSPointerDown' : pointer ? 'pointerdown' : 'touchstart';
-	  var _touchend = msPointer ? 'MSPointerUp' : pointer ? 'pointerup' : 'touchend';
-	  var _pre = '_leaflet_';
+	  function makeDblclick(event) {
+	  	// in modern browsers `type` cannot be just overridden:
+	  	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Getter_only
+	  	var newEvent = {},
+	  	    prop, i;
+	  	for (i in event) {
+	  		prop = event[i];
+	  		newEvent[i] = prop && prop.bind ? prop.bind(event) : prop;
+	  	}
+	  	event = newEvent;
+	  	newEvent.type = 'dblclick';
+	  	newEvent.detail = 2;
+	  	newEvent.isTrusted = false;
+	  	newEvent._simulated = true; // for debug purposes
+	  	return newEvent;
+	  }
 
-	  // inspired by Zepto touch code by Thomas Fuchs
-	  function addDoubleTapListener(obj, handler, id) {
-	  	var last, touch$$1,
-	  	    doubleTap = false,
-	  	    delay = 250;
+	  var delay = 200;
+	  function addDoubleTapListener(obj, handler) {
+	  	// Most browsers handle double tap natively
+	  	obj.addEventListener('dblclick', handler);
 
-	  	function onTouchStart(e) {
-
-	  		if (pointer) {
-	  			if (!e.isPrimary) { return; }
-	  			if (e.pointerType === 'mouse') { return; } // mouse fires native dblclick
-	  		} else if (e.touches.length > 1) {
+	  	// On some platforms the browser doesn't fire native dblclicks for touch events.
+	  	// It seems that in all such cases `detail` property of `click` event is always `1`.
+	  	// So here we rely on that fact to avoid excessive 'dblclick' simulation when not needed.
+	  	var last = 0,
+	  	    detail;
+	  	function simDblclick(e) {
+	  		if (e.detail !== 1) {
+	  			detail = e.detail; // keep in sync to avoid false dblclick in some cases
 	  			return;
 	  		}
 
-	  		var now = Date.now(),
-	  		    delta = now - (last || now);
+	  		if (e.pointerType === 'mouse' ||
+	  			(e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents)) {
 
-	  		touch$$1 = e.touches ? e.touches[0] : e;
-	  		doubleTap = (delta > 0 && delta <= delay);
+	  			return;
+	  		}
+
+	  		// When clicking on an <input>, the browser generates a click on its
+	  		// <label> (and vice versa) triggering two clicks in quick succession.
+	  		// This ignores clicks on elements which are a label with a 'for'
+	  		// attribute (or children of such a label), but not children of
+	  		// a <input>.
+	  		var path = getPropagationPath(e);
+	  		if (path.some(function (el) {
+	  			return el instanceof HTMLLabelElement && el.attributes.for;
+	  		}) &&
+	  			!path.some(function (el) {
+	  				return (
+	  					el instanceof HTMLInputElement ||
+	  					el instanceof HTMLSelectElement
+	  				);
+	  			})
+	  		) {
+	  			return;
+	  		}
+
+	  		var now = Date.now();
+	  		if (now - last <= delay) {
+	  			detail++;
+	  			if (detail === 2) {
+	  				handler(makeDblclick(e));
+	  			}
+	  		} else {
+	  			detail = 1;
+	  		}
 	  		last = now;
 	  	}
 
-	  	function onTouchEnd(e) {
-	  		if (doubleTap && !touch$$1.cancelBubble) {
-	  			if (pointer) {
-	  				if (e.pointerType === 'mouse') { return; }
-	  				// work around .type being readonly with MSPointer* events
-	  				var newTouch = {},
-	  				    prop, i;
+	  	obj.addEventListener('click', simDblclick);
 
-	  				for (i in touch$$1) {
-	  					prop = touch$$1[i];
-	  					newTouch[i] = prop && prop.bind ? prop.bind(touch$$1) : prop;
-	  				}
-	  				touch$$1 = newTouch;
-	  			}
-	  			touch$$1.type = 'dblclick';
-	  			touch$$1.button = 0;
-	  			handler(touch$$1);
-	  			last = null;
-	  		}
-	  	}
-
-	  	obj[_pre + _touchstart + id] = onTouchStart;
-	  	obj[_pre + _touchend + id] = onTouchEnd;
-	  	obj[_pre + 'dblclick' + id] = handler;
-
-	  	obj.addEventListener(_touchstart, onTouchStart, passiveEvents ? {passive: false} : false);
-	  	obj.addEventListener(_touchend, onTouchEnd, passiveEvents ? {passive: false} : false);
-
-	  	// On some platforms (notably, chrome<55 on win10 + touchscreen + mouse),
-	  	// the browser doesn't fire touchend/pointerup events but does fire
-	  	// native dblclicks. See #4127.
-	  	// Edge 14 also fires native dblclicks, but only for pointerType mouse, see #5180.
-	  	obj.addEventListener('dblclick', handler, false);
-
-	  	return this;
+	  	return {
+	  		dblclick: handler,
+	  		simDblclick: simDblclick
+	  	};
 	  }
 
-	  function removeDoubleTapListener(obj, id) {
-	  	var touchstart = obj[_pre + _touchstart + id],
-	  	    touchend = obj[_pre + _touchend + id],
-	  	    dblclick = obj[_pre + 'dblclick' + id];
-
-	  	obj.removeEventListener(_touchstart, touchstart, passiveEvents ? {passive: false} : false);
-	  	obj.removeEventListener(_touchend, touchend, passiveEvents ? {passive: false} : false);
-	  	obj.removeEventListener('dblclick', dblclick, false);
-
-	  	return this;
+	  function removeDoubleTapListener(obj, handlers) {
+	  	obj.removeEventListener('dblclick', handlers.dblclick);
+	  	obj.removeEventListener('click', handlers.simDblclick);
 	  }
 
 	  /*
@@ -15671,7 +15624,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	var pos = offset || new Point(0, 0);
 
 	  	el.style[TRANSFORM] =
-	  		(ie3d ?
+	  		(Browser.ie3d ?
 	  			'translate(' + pos.x + 'px,' + pos.y + 'px)' :
 	  			'translate3d(' + pos.x + 'px,' + pos.y + 'px,0)') +
 	  		(scale ? ' scale(' + scale + ')' : '');
@@ -15687,7 +15640,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	el._leaflet_pos = point;
 	  	/* eslint-enable */
 
-	  	if (any3d) {
+	  	if (Browser.any3d) {
 	  		setTransform(el, point);
 	  	} else {
 	  		el.style.left = point.x + 'px';
@@ -15767,8 +15720,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	if (!element.style) { return; }
 	  	restoreOutline();
 	  	_outlineElement = element;
-	  	_outlineStyle = element.style.outline;
-	  	element.style.outline = 'none';
+	  	_outlineStyle = element.style.outlineStyle;
+	  	element.style.outlineStyle = 'none';
 	  	on(window, 'keydown', restoreOutline);
 	  }
 
@@ -15776,7 +15729,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Cancels the effects of a previous [`L.DomUtil.preventOutline`]().
 	  function restoreOutline() {
 	  	if (!_outlineElement) { return; }
-	  	_outlineElement.style.outline = _outlineStyle;
+	  	_outlineElement.style.outlineStyle = _outlineStyle;
 	  	_outlineElement = undefined;
 	  	_outlineStyle = undefined;
 	  	off(window, 'keydown', restoreOutline);
@@ -15805,7 +15758,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	};
 	  }
 
-	  var DomUtil = ({
+	  var DomUtil = {
+	    __proto__: null,
 	    TRANSFORM: TRANSFORM,
 	    TRANSITION: TRANSITION,
 	    TRANSITION_END: TRANSITION_END,
@@ -15826,15 +15780,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	    setTransform: setTransform,
 	    setPosition: setPosition,
 	    getPosition: getPosition,
-	    disableTextSelection: disableTextSelection,
-	    enableTextSelection: enableTextSelection,
+	    get disableTextSelection () { return disableTextSelection; },
+	    get enableTextSelection () { return enableTextSelection; },
 	    disableImageDrag: disableImageDrag,
 	    enableImageDrag: enableImageDrag,
 	    preventOutline: preventOutline,
 	    restoreOutline: restoreOutline,
 	    getSizedParentNode: getSizedParentNode,
 	    getScale: getScale
-	  });
+	  };
 
 	  /*
 	   * @namespace DomEvent
@@ -15854,7 +15808,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // Adds a set of type/listener pairs, e.g. `{click: onClick, mousemove: onMouseMove}`
 	  function on(obj, types, fn, context) {
 
-	  	if (typeof types === 'object') {
+	  	if (types && typeof types === 'object') {
 	  		for (var type in types) {
 	  			addOne(obj, type, types[type], fn);
 	  		}
@@ -15879,32 +15833,48 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // @alternative
 	  // @function off(el: HTMLElement, eventMap: Object, context?: Object): this
 	  // Removes a set of type/listener pairs, e.g. `{click: onClick, mousemove: onMouseMove}`
+
+	  // @alternative
+	  // @function off(el: HTMLElement, types: String): this
+	  // Removes all previously added listeners of given types.
+
+	  // @alternative
+	  // @function off(el: HTMLElement): this
+	  // Removes all previously added listeners from given HTMLElement
 	  function off(obj, types, fn, context) {
 
-	  	if (typeof types === 'object') {
+	  	if (arguments.length === 1) {
+	  		batchRemove(obj);
+	  		delete obj[eventsKey];
+
+	  	} else if (types && typeof types === 'object') {
 	  		for (var type in types) {
 	  			removeOne(obj, type, types[type], fn);
 	  		}
-	  	} else if (types) {
+
+	  	} else {
 	  		types = splitWords(types);
 
-	  		for (var i = 0, len = types.length; i < len; i++) {
-	  			removeOne(obj, types[i], fn, context);
+	  		if (arguments.length === 2) {
+	  			batchRemove(obj, function (type) {
+	  				return indexOf(types, type) !== -1;
+	  			});
+	  		} else {
+	  			for (var i = 0, len = types.length; i < len; i++) {
+	  				removeOne(obj, types[i], fn, context);
+	  			}
 	  		}
-	  	} else {
-	  		for (var j in obj[eventsKey]) {
-	  			removeOne(obj, j, obj[eventsKey][j]);
-	  		}
-	  		delete obj[eventsKey];
 	  	}
 
 	  	return this;
 	  }
 
-	  function browserFiresNativeDblClick() {
-	  	// See https://github.com/w3c/pointerevents/issues/171
-	  	if (pointer) {
-	  		return !(edge || safari);
+	  function batchRemove(obj, filterFn) {
+	  	for (var id in obj[eventsKey]) {
+	  		var type = id.split(/\d/)[0];
+	  		if (!filterFn || filterFn(type)) {
+	  			removeOne(obj, type, null, null, id);
+	  		}
 	  	}
 	  }
 
@@ -15925,17 +15895,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	var originalHandler = handler;
 
-	  	if (pointer && type.indexOf('touch') === 0) {
+	  	if (!Browser.touchNative && Browser.pointer && type.indexOf('touch') === 0) {
 	  		// Needs DomEvent.Pointer.js
-	  		addPointerListener(obj, type, handler, id);
+	  		handler = addPointerListener(obj, type, handler);
 
-	  	} else if (touch && (type === 'dblclick') && !browserFiresNativeDblClick()) {
-	  		addDoubleTapListener(obj, handler, id);
+	  	} else if (Browser.touch && (type === 'dblclick')) {
+	  		handler = addDoubleTapListener(obj, handler);
 
 	  	} else if ('addEventListener' in obj) {
 
 	  		if (type === 'touchstart' || type === 'touchmove' || type === 'wheel' ||  type === 'mousewheel') {
-	  			obj.addEventListener(mouseSubst[type] || type, handler, passiveEvents ? {passive: false} : false);
+	  			obj.addEventListener(mouseSubst[type] || type, handler, Browser.passiveEvents ? {passive: false} : false);
 
 	  		} else if (type === 'mouseenter' || type === 'mouseleave') {
 	  			handler = function (e) {
@@ -15950,7 +15920,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			obj.addEventListener(type, originalHandler, false);
 	  		}
 
-	  	} else if ('attachEvent' in obj) {
+	  	} else {
 	  		obj.attachEvent('on' + type, handler);
 	  	}
 
@@ -15958,24 +15928,23 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	obj[eventsKey][id] = handler;
 	  }
 
-	  function removeOne(obj, type, fn, context) {
-
-	  	var id = type + stamp(fn) + (context ? '_' + stamp(context) : ''),
-	  	    handler = obj[eventsKey] && obj[eventsKey][id];
+	  function removeOne(obj, type, fn, context, id) {
+	  	id = id || type + stamp(fn) + (context ? '_' + stamp(context) : '');
+	  	var handler = obj[eventsKey] && obj[eventsKey][id];
 
 	  	if (!handler) { return this; }
 
-	  	if (pointer && type.indexOf('touch') === 0) {
-	  		removePointerListener(obj, type, id);
+	  	if (!Browser.touchNative && Browser.pointer && type.indexOf('touch') === 0) {
+	  		removePointerListener(obj, type, handler);
 
-	  	} else if (touch && (type === 'dblclick') && !browserFiresNativeDblClick()) {
-	  		removeDoubleTapListener(obj, id);
+	  	} else if (Browser.touch && (type === 'dblclick')) {
+	  		removeDoubleTapListener(obj, handler);
 
 	  	} else if ('removeEventListener' in obj) {
 
 	  		obj.removeEventListener(mouseSubst[type] || type, handler, false);
 
-	  	} else if ('detachEvent' in obj) {
+	  	} else {
 	  		obj.detachEvent('on' + type, handler);
 	  	}
 
@@ -15998,7 +15967,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	} else {
 	  		e.cancelBubble = true;
 	  	}
-	  	skipped(e);
 
 	  	return this;
 	  }
@@ -16011,11 +15979,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  }
 
 	  // @function disableClickPropagation(el: HTMLElement): this
-	  // Adds `stopPropagation` to the element's `'click'`, `'doubleclick'`,
+	  // Adds `stopPropagation` to the element's `'click'`, `'dblclick'`, `'contextmenu'`,
 	  // `'mousedown'` and `'touchstart'` events (plus browser variants).
 	  function disableClickPropagation(el) {
-	  	on(el, 'mousedown touchstart dblclick', stopPropagation);
-	  	addOne(el, 'click', fakeStop);
+	  	on(el, 'mousedown touchstart dblclick contextmenu', stopPropagation);
+	  	el['_leaflet_disable_click'] = true;
 	  	return this;
 	  }
 
@@ -16041,6 +16009,26 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return this;
 	  }
 
+	  // @function getPropagationPath(ev: DOMEvent): Array
+	  // Compatibility polyfill for [`Event.composedPath()`](https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath).
+	  // Returns an array containing the `HTMLElement`s that the given DOM event
+	  // should propagate to (if not stopped).
+	  function getPropagationPath(ev) {
+	  	if (ev.composedPath) {
+	  		return ev.composedPath();
+	  	}
+
+	  	var path = [];
+	  	var el = ev.target;
+
+	  	while (el) {
+	  		path.push(el);
+	  		el = el.parentNode;
+	  	}
+	  	return path;
+	  }
+
+
 	  // @function getMousePosition(ev: DOMEvent, container?: HTMLElement): Point
 	  // Gets normalized mouse position from a DOM event relative to the
 	  // `container` (border excluded) or to the whole page if not specified.
@@ -16060,19 +16048,22 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	);
 	  }
 
-	  // Chrome on Win scrolls double the pixels as in other platforms (see #4538),
-	  // and Firefox scrolls device pixels, not CSS pixels
-	  var wheelPxFactor =
-	  	(win && chrome) ? 2 * window.devicePixelRatio :
-	  	gecko ? window.devicePixelRatio : 1;
 
+	  //  except , Safari and
+	  // We need double the scroll pixels (see #7403 and #4538) for all Browsers
+	  // except OSX (Mac) -> 3x, Chrome running on Linux 1x
+
+	  var wheelPxFactor =
+	  	(Browser.linux && Browser.chrome) ? window.devicePixelRatio :
+	  	Browser.mac ? window.devicePixelRatio * 3 :
+	  	window.devicePixelRatio > 0 ? 2 * window.devicePixelRatio : 1;
 	  // @function getWheelDelta(ev: DOMEvent): Number
 	  // Gets normalized wheel delta from a wheel DOM event, in vertical
 	  // pixels scrolled (negative if scrolling down).
 	  // Events from pointing devices without precise scrolling are mapped to
 	  // a best guess of 60 pixels.
 	  function getWheelDelta(e) {
-	  	return (edge) ? e.wheelDeltaY / 2 : // Don't trust window-geometry-based delta
+	  	return (Browser.edge) ? e.wheelDeltaY / 2 : // Don't trust window-geometry-based delta
 	  	       (e.deltaY && e.deltaMode === 0) ? -e.deltaY / wheelPxFactor : // Pixels
 	  	       (e.deltaY && e.deltaMode === 1) ? -e.deltaY * 20 : // Lines
 	  	       (e.deltaY && e.deltaMode === 2) ? -e.deltaY * 60 : // Pages
@@ -16081,20 +16072,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	       (e.detail && Math.abs(e.detail) < 32765) ? -e.detail * 20 : // Legacy Moz lines
 	  	       e.detail ? e.detail / -32765 * 60 : // Legacy Moz pages
 	  	       0;
-	  }
-
-	  var skipEvents = {};
-
-	  function fakeStop(e) {
-	  	// fakes stopPropagation by setting a special event flag, checked/reset with skipped(e)
-	  	skipEvents[e.type] = true;
-	  }
-
-	  function skipped(e) {
-	  	var events = skipEvents[e.type];
-	  	// reset when checking, as it's only used in map container and propagates outside of the map
-	  	skipEvents[e.type] = false;
-	  	return events;
 	  }
 
 	  // check if element really left/entered the event target (for mouseenter/mouseleave)
@@ -16114,7 +16091,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return (related !== el);
 	  }
 
-	  var DomEvent = ({
+	  var DomEvent = {
+	    __proto__: null,
 	    on: on,
 	    off: off,
 	    stopPropagation: stopPropagation,
@@ -16122,14 +16100,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	    disableClickPropagation: disableClickPropagation,
 	    preventDefault: preventDefault,
 	    stop: stop,
+	    getPropagationPath: getPropagationPath,
 	    getMousePosition: getMousePosition,
 	    getWheelDelta: getWheelDelta,
-	    fakeStop: fakeStop,
-	    skipped: skipped,
 	    isExternalTarget: isExternalTarget,
 	    addListener: on,
 	    removeListener: off
-	  });
+	  };
 
 	  /*
 	   * @class PosAnimation
@@ -16139,8 +16116,21 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   *
 	   * @example
 	   * ```js
-	   * var fx = new L.PosAnimation();
-	   * fx.run(el, [300, 500], 0.5);
+	   * var myPositionMarker = L.marker([48.864716, 2.294694]).addTo(map);
+	   *
+	   * myPositionMarker.on("click", function() {
+	   * 	var pos = map.latLngToLayerPoint(myPositionMarker.getLatLng());
+	   * 	pos.y -= 25;
+	   * 	var fx = new L.PosAnimation();
+	   *
+	   * 	fx.once('end',function() {
+	   * 		pos.y += 25;
+	   * 		fx.run(myPositionMarker._icon, pos, 0.8);
+	   * 	});
+	   *
+	   * 	fx.run(myPositionMarker._icon, pos, 0.3);
+	   * });
+	   *
 	   * ```
 	   *
 	   * @constructor L.PosAnimation()
@@ -16153,7 +16143,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method run(el: HTMLElement, newPos: Point, duration?: Number, easeLinearity?: Number)
 	  	// Run an animation of a given element to a new position, optionally setting
 	  	// duration in seconds (`0.25` by default) and easing linearity factor (3rd
-	  	// argument of the [cubic bezier curve](http://cubic-bezier.com/#0,0,.5,1),
+	  	// argument of the [cubic bezier curve](https://cubic-bezier.com/#0,0,.5,1),
 	  	// `0.5` by default).
 	  	run: function (el, newPos, duration, easeLinearity) {
 	  		this.stop();
@@ -16373,7 +16363,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this.callInitHooks();
 
 	  		// don't animate on browsers without hardware-accelerated transitions or old Android/Opera
-	  		this._zoomAnimated = TRANSITION && any3d && !mobileOpera &&
+	  		this._zoomAnimated = TRANSITION && Browser.any3d && !Browser.mobileOpera &&
 	  				this.options.zoomAnimation;
 
 	  		// zoom transitions run with the same duration for all layers, so if one of transitionend events
@@ -16420,7 +16410,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		}
 
 	  		// animation didn't start, just reset the map view
-	  		this._resetView(center, zoom);
+	  		this._resetView(center, zoom, options.pan && options.pan.noMoveStart);
 
 	  		return this;
 	  	},
@@ -16438,14 +16428,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method zoomIn(delta?: Number, options?: Zoom options): this
 	  	// Increases the zoom of the map by `delta` ([`zoomDelta`](#map-zoomdelta) by default).
 	  	zoomIn: function (delta, options) {
-	  		delta = delta || (any3d ? this.options.zoomDelta : 1);
+	  		delta = delta || (Browser.any3d ? this.options.zoomDelta : 1);
 	  		return this.setZoom(this._zoom + delta, options);
 	  	},
 
 	  	// @method zoomOut(delta?: Number, options?: Zoom options): this
 	  	// Decreases the zoom of the map by `delta` ([`zoomDelta`](#map-zoomdelta) by default).
 	  	zoomOut: function (delta, options) {
-	  		delta = delta || (any3d ? this.options.zoomDelta : 1);
+	  		delta = delta || (Browser.any3d ? this.options.zoomDelta : 1);
 	  		return this.setZoom(this._zoom - delta, options);
 	  	},
 
@@ -16575,7 +16565,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	flyTo: function (targetCenter, targetZoom, options) {
 
 	  		options = options || {};
-	  		if (options.animate === false || !any3d) {
+	  		if (options.animate === false || !Browser.any3d) {
 	  			return this.setView(targetCenter, targetZoom, options);
 	  		}
 
@@ -16663,11 +16653,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	setMaxBounds: function (bounds) {
 	  		bounds = toLatLngBounds(bounds);
 
+	  		if (this.listens('moveend', this._panInsideMaxBounds)) {
+	  			this.off('moveend', this._panInsideMaxBounds);
+	  		}
+
 	  		if (!bounds.isValid()) {
 	  			this.options.maxBounds = null;
-	  			return this.off('moveend', this._panInsideMaxBounds);
-	  		} else if (this.options.maxBounds) {
-	  			this.off('moveend', this._panInsideMaxBounds);
+	  			return this;
 	  		}
 
 	  		this.options.maxBounds = bounds;
@@ -16728,10 +16720,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this;
 	  	},
 
-	  	// @method panInside(latlng: LatLng, options?: options): this
+	  	// @method panInside(latlng: LatLng, options?: padding options): this
 	  	// Pans the map the minimum amount to make the `latlng` visible. Use
-	  	// `padding`, `paddingTopLeft` and `paddingTopRight` options to fit
-	  	// the display to more restricted bounds, like [`fitBounds`](#map-fitbounds).
+	  	// padding options to fit the display to more restricted bounds.
 	  	// If `latlng` is already within the (optionally padded) display bounds,
 	  	// the map will not be panned.
 	  	panInside: function (latlng, options) {
@@ -16739,35 +16730,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		var paddingTL = toPoint(options.paddingTopLeft || options.padding || [0, 0]),
 	  		    paddingBR = toPoint(options.paddingBottomRight || options.padding || [0, 0]),
-	  		    center = this.getCenter(),
-	  		    pixelCenter = this.project(center),
+	  		    pixelCenter = this.project(this.getCenter()),
 	  		    pixelPoint = this.project(latlng),
 	  		    pixelBounds = this.getPixelBounds(),
-	  		    halfPixelBounds = pixelBounds.getSize().divideBy(2),
-	  		    paddedBounds = toBounds([pixelBounds.min.add(paddingTL), pixelBounds.max.subtract(paddingBR)]);
+	  		    paddedBounds = toBounds([pixelBounds.min.add(paddingTL), pixelBounds.max.subtract(paddingBR)]),
+	  		    paddedSize = paddedBounds.getSize();
 
 	  		if (!paddedBounds.contains(pixelPoint)) {
 	  			this._enforcingBounds = true;
-	  			var diff = pixelCenter.subtract(pixelPoint),
-	  			    newCenter = toPoint(pixelPoint.x + diff.x, pixelPoint.y + diff.y);
-
-	  			if (pixelPoint.x < paddedBounds.min.x || pixelPoint.x > paddedBounds.max.x) {
-	  				newCenter.x = pixelCenter.x - diff.x;
-	  				if (diff.x > 0) {
-	  					newCenter.x += halfPixelBounds.x - paddingTL.x;
-	  				} else {
-	  					newCenter.x -= halfPixelBounds.x - paddingBR.x;
-	  				}
-	  			}
-	  			if (pixelPoint.y < paddedBounds.min.y || pixelPoint.y > paddedBounds.max.y) {
-	  				newCenter.y = pixelCenter.y - diff.y;
-	  				if (diff.y > 0) {
-	  					newCenter.y += halfPixelBounds.y - paddingTL.y;
-	  				} else {
-	  					newCenter.y -= halfPixelBounds.y - paddingBR.y;
-	  				}
-	  			}
-	  			this.panTo(this.unproject(newCenter), options);
+	  			var centerOffset = pixelPoint.subtract(paddedBounds.getCenter());
+	  			var offset = paddedBounds.extend(pixelPoint).getSize().subtract(paddedSize);
+	  			pixelCenter.x += centerOffset.x < 0 ? -offset.x : offset.x;
+	  			pixelCenter.y += centerOffset.y < 0 ? -offset.y : offset.y;
+	  			this.panTo(this.unproject(pixelCenter), options);
 	  			this._enforcingBounds = false;
 	  		}
 	  		return this;
@@ -16898,6 +16873,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_handleGeolocationError: function (error) {
+	  		if (!this._container._leaflet_id) { return; }
+
 	  		var c = error.code,
 	  		    message = error.message ||
 	  		            (c === 1 ? 'permission denied' :
@@ -16917,6 +16894,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_handleGeolocationResponse: function (pos) {
+	  		if (!this._container._leaflet_id) { return; }
+
 	  		var lat = pos.coords.latitude,
 	  		    lng = pos.coords.longitude,
 	  		    latlng = new LatLng(lat, lng),
@@ -16969,7 +16948,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	remove: function () {
 
 	  		this._initEvents(true);
-	  		this.off('moveend', this._panInsideMaxBounds);
+	  		if (this.options.maxBounds) { this.off('moveend', this._panInsideMaxBounds); }
 
 	  		if (this._containerId !== this._container._leaflet_id) {
 	  			throw new Error('Map container is being reused by another instance');
@@ -17050,7 +17029,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this._checkIfLoaded();
 
 	  		if (this._lastCenter && !this._moved()) {
-	  			return this._lastCenter;
+	  			return this._lastCenter.clone();
 	  		}
 	  		return this.layerPointToLatLng(this._getCenterLayerPoint());
 	  	},
@@ -17101,7 +17080,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		    se = bounds.getSouthEast(),
 	  		    size = this.getSize().subtract(padding),
 	  		    boundsSize = toBounds(this.project(se, zoom), this.project(nw, zoom)).getSize(),
-	  		    snap = any3d ? this.options.zoomSnap : 1,
+	  		    snap = Browser.any3d ? this.options.zoomSnap : 1,
 	  		    scalex = size.x / boundsSize.x,
 	  		    scaley = size.y / boundsSize.y,
 	  		    scale = inside ? Math.max(scalex, scaley) : Math.min(scalex, scaley);
@@ -17329,18 +17308,18 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	_initLayout: function () {
 	  		var container = this._container;
 
-	  		this._fadeAnimated = this.options.fadeAnimation && any3d;
+	  		this._fadeAnimated = this.options.fadeAnimation && Browser.any3d;
 
 	  		addClass(container, 'leaflet-container' +
-	  			(touch ? ' leaflet-touch' : '') +
-	  			(retina ? ' leaflet-retina' : '') +
-	  			(ielt9 ? ' leaflet-oldie' : '') +
-	  			(safari ? ' leaflet-safari' : '') +
+	  			(Browser.touch ? ' leaflet-touch' : '') +
+	  			(Browser.retina ? ' leaflet-retina' : '') +
+	  			(Browser.ielt9 ? ' leaflet-oldie' : '') +
+	  			(Browser.safari ? ' leaflet-safari' : '') +
 	  			(this._fadeAnimated ? ' leaflet-fade-anim' : ''));
 
 	  		var position = getStyle(container, 'position');
 
-	  		if (position !== 'absolute' && position !== 'relative' && position !== 'fixed') {
+	  		if (position !== 'absolute' && position !== 'relative' && position !== 'fixed' && position !== 'sticky') {
 	  			container.style.position = 'relative';
 	  		}
 
@@ -17374,11 +17353,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// Pane for `GridLayer`s and `TileLayer`s
 	  		this.createPane('tilePane');
 	  		// @pane overlayPane: HTMLElement = 400
-	  		// Pane for overlay shadows (e.g. `Marker` shadows)
-	  		this.createPane('shadowPane');
-	  		// @pane shadowPane: HTMLElement = 500
 	  		// Pane for vectors (`Path`s, like `Polyline`s and `Polygon`s), `ImageOverlay`s and `VideoOverlay`s
 	  		this.createPane('overlayPane');
+	  		// @pane shadowPane: HTMLElement = 500
+	  		// Pane for overlay shadows (e.g. `Marker` shadows)
+	  		this.createPane('shadowPane');
 	  		// @pane markerPane: HTMLElement = 600
 	  		// Pane for `Icon`s of `Marker`s
 	  		this.createPane('markerPane');
@@ -17399,7 +17378,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// private methods that modify map state
 
 	  	// @section Map state change events
-	  	_resetView: function (center, zoom) {
+	  	_resetView: function (center, zoom, noMoveStart) {
 	  		setPosition(this._mapPane, new Point(0, 0));
 
 	  		var loading = !this._loaded;
@@ -17410,7 +17389,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		var zoomChanged = this._zoom !== zoom;
 	  		this
-	  			._moveStart(zoomChanged, false)
+	  			._moveStart(zoomChanged, noMoveStart)
 	  			._move(center, zoom)
 	  			._moveEnd(zoomChanged);
 
@@ -17441,7 +17420,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this;
 	  	},
 
-	  	_move: function (center, zoom, data) {
+	  	_move: function (center, zoom, data, supressEvent) {
 	  		if (zoom === undefined) {
 	  			zoom = this._zoom;
 	  		}
@@ -17451,29 +17430,34 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this._lastCenter = center;
 	  		this._pixelOrigin = this._getNewPixelOrigin(center);
 
-	  		// @event zoom: Event
-	  		// Fired repeatedly during any change in zoom level, including zoom
-	  		// and fly animations.
-	  		if (zoomChanged || (data && data.pinch)) {	// Always fire 'zoom' if pinching because #3530
+	  		if (!supressEvent) {
+	  			// @event zoom: Event
+	  			// Fired repeatedly during any change in zoom level,
+	  			// including zoom and fly animations.
+	  			if (zoomChanged || (data && data.pinch)) {	// Always fire 'zoom' if pinching because #3530
+	  				this.fire('zoom', data);
+	  			}
+
+	  			// @event move: Event
+	  			// Fired repeatedly during any movement of the map,
+	  			// including pan and fly animations.
+	  			this.fire('move', data);
+	  		} else if (data && data.pinch) {	// Always fire 'zoom' if pinching because #3530
 	  			this.fire('zoom', data);
 	  		}
-
-	  		// @event move: Event
-	  		// Fired repeatedly during any movement of the map, including pan and
-	  		// fly animations.
-	  		return this.fire('move', data);
+	  		return this;
 	  	},
 
 	  	_moveEnd: function (zoomChanged) {
 	  		// @event zoomend: Event
-	  		// Fired when the map has changed, after any animations.
+	  		// Fired when the map zoom changed, after any animations.
 	  		if (zoomChanged) {
 	  			this.fire('zoomend');
 	  		}
 
 	  		// @event moveend: Event
-	  		// Fired when the center of the map stops changing (e.g. user stopped
-	  		// dragging the map).
+	  		// Fired when the center of the map stops changing
+	  		// (e.g. user stopped dragging the map or after non-centered zoom).
 	  		return this.fire('moveend');
 	  	},
 
@@ -17508,11 +17492,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// DOM event handling
 
 	  	// @section Interaction events
-	  	_initEvents: function (remove$$1) {
+	  	_initEvents: function (remove) {
 	  		this._targets = {};
 	  		this._targets[stamp(this._container)] = this;
 
-	  		var onOff = remove$$1 ? off : on;
+	  		var onOff = remove ? off : on;
 
 	  		// @event click: MouseEvent
 	  		// Fired when the user clicks (or taps) the map.
@@ -17548,8 +17532,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			onOff(window, 'resize', this._onResize, this);
 	  		}
 
-	  		if (any3d && this.options.transform3DLimit) {
-	  			(remove$$1 ? this.off : this.on).call(this, 'moveend', this._onMoveEnd);
+	  		if (Browser.any3d && this.options.transform3DLimit) {
+	  			(remove ? this.off : this.on).call(this, 'moveend', this._onMoveEnd);
 	  		}
 	  	},
 
@@ -17568,7 +17552,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		var pos = this._getMapPanePos();
 	  		if (Math.max(Math.abs(pos.x), Math.abs(pos.y)) >= this.options.transform3DLimit) {
 	  			// https://bugzilla.mozilla.org/show_bug.cgi?id=1203873 but Webkit also have
-	  			// a pixel offset on very high values, see: http://jsfiddle.net/dg6r5hhb/
+	  			// a pixel offset on very high values, see: https://jsfiddle.net/dg6r5hhb/
 	  			this._resetView(this.getCenter(), this.getZoom());
 	  		}
 	  	},
@@ -17582,7 +17566,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		while (src) {
 	  			target = this._targets[stamp(src)];
-	  			if (target && (type === 'click' || type === 'preclick') && !e._simulated && this._draggableMoved(target)) {
+	  			if (target && (type === 'click' || type === 'preclick') && this._draggableMoved(target)) {
 	  				// Prevent firing click after you just dragged an object.
 	  				dragging = true;
 	  				break;
@@ -17595,20 +17579,30 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			if (src === this._container) { break; }
 	  			src = src.parentNode;
 	  		}
-	  		if (!targets.length && !dragging && !isHover && isExternalTarget(src, e)) {
+	  		if (!targets.length && !dragging && !isHover && this.listens(type, true)) {
 	  			targets = [this];
 	  		}
 	  		return targets;
 	  	},
 
+	  	_isClickDisabled: function (el) {
+	  		while (el && el !== this._container) {
+	  			if (el['_leaflet_disable_click']) { return true; }
+	  			el = el.parentNode;
+	  		}
+	  	},
+
 	  	_handleDOMEvent: function (e) {
-	  		if (!this._loaded || skipped(e)) { return; }
+	  		var el = (e.target || e.srcElement);
+	  		if (!this._loaded || el['_leaflet_disable_events'] || e.type === 'click' && this._isClickDisabled(el)) {
+	  			return;
+	  		}
 
 	  		var type = e.type;
 
-	  		if (type === 'mousedown' || type === 'keypress' || type === 'keyup' || type === 'keydown') {
+	  		if (type === 'mousedown') {
 	  			// prevents outline when clicking on keyboard-focusable element
-	  			preventOutline(e.target || e.srcElement);
+	  			preventOutline(el);
 	  		}
 
 	  		this._fireDOMEvent(e, type);
@@ -17616,7 +17610,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	_mouseEvents: ['click', 'dblclick', 'mouseover', 'mouseout', 'contextmenu'],
 
-	  	_fireDOMEvent: function (e, type, targets) {
+	  	_fireDOMEvent: function (e, type, canvasTargets) {
 
 	  		if (e.type === 'click') {
 	  			// Fire a synthetic 'preclick' event which propagates up (mainly for closing popups).
@@ -17626,21 +17620,29 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			// handlers start running).
 	  			var synth = extend({}, e);
 	  			synth.type = 'preclick';
-	  			this._fireDOMEvent(synth, synth.type, targets);
+	  			this._fireDOMEvent(synth, synth.type, canvasTargets);
 	  		}
 
-	  		if (e._stopped) { return; }
-
 	  		// Find the layer the event is propagating from and its parents.
-	  		targets = (targets || []).concat(this._findEventTargets(e, type));
+	  		var targets = this._findEventTargets(e, type);
+
+	  		if (canvasTargets) {
+	  			var filtered = []; // pick only targets with listeners
+	  			for (var i = 0; i < canvasTargets.length; i++) {
+	  				if (canvasTargets[i].listens(type, true)) {
+	  					filtered.push(canvasTargets[i]);
+	  				}
+	  			}
+	  			targets = filtered.concat(targets);
+	  		}
 
 	  		if (!targets.length) { return; }
 
-	  		var target = targets[0];
-	  		if (type === 'contextmenu' && target.listens(type, true)) {
+	  		if (type === 'contextmenu') {
 	  			preventDefault(e);
 	  		}
 
+	  		var target = targets[0];
 	  		var data = {
 	  			originalEvent: e
 	  		};
@@ -17653,7 +17655,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			data.latlng = isMarker ? target.getLatLng() : this.layerPointToLatLng(data.layerPoint);
 	  		}
 
-	  		for (var i = 0; i < targets.length; i++) {
+	  		for (i = 0; i < targets.length; i++) {
 	  			targets[i].fire(type, data, true);
 	  			if (data.originalEvent._stopped ||
 	  				(targets[i].options.bubblingMouseEvents === false && indexOf(this._mouseEvents, type) !== -1)) { return; }
@@ -17748,7 +17750,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// If offset is less than a pixel, ignore.
 	  		// This prevents unstable projections from getting into
 	  		// an infinite loop of tiny offsets.
-	  		if (offset.round().equals([0, 0])) {
+	  		if (Math.abs(offset.x) <= 1 && Math.abs(offset.y) <= 1) {
 	  			return center;
 	  		}
 
@@ -17789,7 +17791,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	_limitZoom: function (zoom) {
 	  		var min = this.getMinZoom(),
 	  		    max = this.getMaxZoom(),
-	  		    snap = any3d ? this.options.zoomSnap : 1;
+	  		    snap = Browser.any3d ? this.options.zoomSnap : 1;
 	  		if (snap) {
 	  			zoom = Math.round(zoom / snap) * snap;
 	  		}
@@ -17880,7 +17882,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		requestAnimFrame(function () {
 	  			this
-	  			    ._moveStart(true, false)
+	  			    ._moveStart(true, options.noMoveStart || false)
 	  			    ._animateZoom(center, zoom, true);
 	  		}, this);
 
@@ -17909,6 +17911,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			noUpdate: noUpdate
 	  		});
 
+	  		if (!this._tempFireZoomEvent) {
+	  			this._tempFireZoomEvent = this._zoom !== this._animateToZoom;
+	  		}
+
+	  		this._move(this._animateToCenter, this._animateToZoom, undefined, true);
+
 	  		// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
 	  		setTimeout(bind(this._onZoomTransitionEnd, this), 250);
 	  	},
@@ -17922,12 +17930,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		this._animatingZoom = false;
 
-	  		this._move(this._animateToCenter, this._animateToZoom);
+	  		this._move(this._animateToCenter, this._animateToZoom, undefined, true);
 
-	  		// This anim frame should prevent an obscure iOS webkit tile loading race condition.
-	  		requestAnimFrame(function () {
-	  			this._moveEnd(true);
-	  		}, this);
+	  		if (this._tempFireZoomEvent) {
+	  			this.fire('zoom');
+	  		}
+	  		delete this._tempFireZoomEvent;
+
+	  		this.fire('move');
+
+	  		this._moveEnd(true);
 	  	}
 	  });
 
@@ -17956,7 +17968,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  var Control = Class.extend({
 	  	// @section
-	  	// @aka Control options
+	  	// @aka Control Options
 	  	options: {
 	  		// @option position: String = 'topright'
 	  		// The position of the control (one of the map corners). Possible values are `'topleft'`,
@@ -18119,7 +18131,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * @aka L.Control.Layers
 	   * @inherits Control
 	   *
-	   * The layers control gives users the ability to switch between different base layers and switch overlays on/off (check out the [detailed example](http://leafletjs.com/examples/layers-control/)). Extends `Control`.
+	   * The layers control gives users the ability to switch between different base layers and switch overlays on/off (check out the [detailed example](https://leafletjs.com/examples/layers-control/)). Extends `Control`.
 	   *
 	   * @example
 	   *
@@ -18158,7 +18170,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @aka Control.Layers options
 	  	options: {
 	  		// @option collapsed: Boolean = true
-	  		// If `true`, the control will be collapsed into an icon and expanded on mouse hover or touch.
+	  		// If `true`, the control will be collapsed into an icon and expanded on mouse hover, touch, or keyboard activation.
 	  		collapsed: true,
 	  		position: 'topright',
 
@@ -18193,6 +18205,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this._layers = [];
 	  		this._lastZIndex = 0;
 	  		this._handlingClick = false;
+	  		this._preventClick = false;
 
 	  		for (var i in baseLayers) {
 	  			this._addLayer(baseLayers[i], i);
@@ -18296,24 +18309,29 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		if (collapsed) {
 	  			this._map.on('click', this.collapse, this);
 
-	  			if (!android) {
-	  				on(container, {
-	  					mouseenter: this.expand,
-	  					mouseleave: this.collapse
-	  				}, this);
-	  			}
+	  			on(container, {
+	  				mouseenter: this._expandSafely,
+	  				mouseleave: this.collapse
+	  			}, this);
 	  		}
 
 	  		var link = this._layersLink = create$1('a', className + '-toggle', container);
 	  		link.href = '#';
 	  		link.title = 'Layers';
+	  		link.setAttribute('role', 'button');
 
-	  		if (touch) {
-	  			on(link, 'click', stop);
-	  			on(link, 'click', this.expand, this);
-	  		} else {
-	  			on(link, 'focus', this.expand, this);
-	  		}
+	  		on(link, {
+	  			keydown: function (e) {
+	  				if (e.keyCode === 13) {
+	  					this._expandSafely();
+	  				}
+	  			},
+	  			// Certain screen readers intercept the key event and instead send a click event
+	  			click: function (e) {
+	  				preventDefault(e);
+	  				this._expandSafely();
+	  			}
+	  		}, this);
 
 	  		if (!collapsed) {
 	  			this.expand();
@@ -18413,7 +18431,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		}
 	  	},
 
-	  	// IE7 bugs out if you create a radio dynamically, so you have to do it this hacky way (see http://bit.ly/PqYLBe)
+	  	// IE7 bugs out if you create a radio dynamically, so you have to do it this hacky way (see https://stackoverflow.com/a/119079)
 	  	_createRadioElement: function (name, checked) {
 
 	  		var radioHtml = '<input type="radio" class="leaflet-control-layers-selector" name="' +
@@ -18449,7 +18467,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		// Helps from preventing layer control flicker when checkboxes are disabled
 	  		// https://github.com/Leaflet/Leaflet/issues/2771
-	  		var holder = document.createElement('div');
+	  		var holder = document.createElement('span');
 
 	  		label.appendChild(holder);
 	  		holder.appendChild(input);
@@ -18463,6 +18481,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_onInputClick: function () {
+	  		// expanding the control on mobile with a click can cause adding a layer - we don't want this
+	  		if (this._preventClick) {
+	  			return;
+	  		}
+
 	  		var inputs = this._layerControlInputs,
 	  		    input, layer;
 	  		var addedLayers = [],
@@ -18520,14 +18543,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this;
 	  	},
 
-	  	_expand: function () {
-	  		// Backward compatibility, remove me in 1.1.
-	  		return this.expand();
-	  	},
-
-	  	_collapse: function () {
-	  		// Backward compatibility, remove me in 1.1.
-	  		return this.collapse();
+	  	_expandSafely: function () {
+	  		var section = this._section;
+	  		this._preventClick = true;
+	  		on(section, 'click', preventDefault);
+	  		this.expand();
+	  		var that = this;
+	  		setTimeout(function () {
+	  			off(section, 'click', preventDefault);
+	  			that._preventClick = false;
+	  		});
 	  	}
 
 	  });
@@ -18553,17 +18578,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	options: {
 	  		position: 'topleft',
 
-	  		// @option zoomInText: String = '+'
+	  		// @option zoomInText: String = '<span aria-hidden="true">+</span>'
 	  		// The text set on the 'zoom in' button.
-	  		zoomInText: '+',
+	  		zoomInText: '<span aria-hidden="true">+</span>',
 
 	  		// @option zoomInTitle: String = 'Zoom in'
 	  		// The title set on the 'zoom in' button.
 	  		zoomInTitle: 'Zoom in',
 
-	  		// @option zoomOutText: String = '&#x2212;'
+	  		// @option zoomOutText: String = '<span aria-hidden="true">&#x2212;</span>'
 	  		// The text set on the 'zoom out' button.
-	  		zoomOutText: '&#x2212;',
+	  		zoomOutText: '<span aria-hidden="true">&#x2212;</span>',
 
 	  		// @option zoomOutTitle: String = 'Zoom out'
 	  		// The title set on the 'zoom out' button.
@@ -18640,12 +18665,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		removeClass(this._zoomInButton, className);
 	  		removeClass(this._zoomOutButton, className);
+	  		this._zoomInButton.setAttribute('aria-disabled', 'false');
+	  		this._zoomOutButton.setAttribute('aria-disabled', 'false');
 
 	  		if (this._disabled || map._zoom === map.getMinZoom()) {
 	  			addClass(this._zoomOutButton, className);
+	  			this._zoomOutButton.setAttribute('aria-disabled', 'true');
 	  		}
 	  		if (this._disabled || map._zoom === map.getMaxZoom()) {
 	  			addClass(this._zoomInButton, className);
+	  			this._zoomInButton.setAttribute('aria-disabled', 'true');
 	  		}
 	  	}
 	  });
@@ -18805,6 +18834,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return new Scale(options);
 	  };
 
+	  var ukrainianFlag = '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"/><path fill="#FFD500" d="M0 4h12v3H0z"/><path fill="#E0BC00" d="M0 7h12v1H0z"/></svg>';
+
+
 	  /*
 	   * @class Control.Attribution
 	   * @aka L.Control.Attribution
@@ -18819,9 +18851,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	options: {
 	  		position: 'bottomright',
 
-	  		// @option prefix: String = 'Leaflet'
+	  		// @option prefix: String|false = 'Leaflet'
 	  		// The HTML text shown before the attributions. Pass `false` to disable.
-	  		prefix: '<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>'
+	  		prefix: '<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">' + (Browser.inlineSvg ? ukrainianFlag + ' ' : '') + 'Leaflet</a>'
 	  	},
 
 	  	initialize: function (options) {
@@ -18844,11 +18876,26 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		this._update();
 
+	  		map.on('layeradd', this._addAttribution, this);
+
 	  		return this._container;
 	  	},
 
-	  	// @method setPrefix(prefix: String): this
-	  	// Sets the text before the attributions.
+	  	onRemove: function (map) {
+	  		map.off('layeradd', this._addAttribution, this);
+	  	},
+
+	  	_addAttribution: function (ev) {
+	  		if (ev.layer.getAttribution) {
+	  			this.addAttribution(ev.layer.getAttribution());
+	  			ev.layer.once('remove', function () {
+	  				this.removeAttribution(ev.layer.getAttribution());
+	  			}, this);
+	  		}
+	  	},
+
+	  	// @method setPrefix(prefix: String|false): this
+	  	// The HTML text shown before the attributions. Pass `false` to disable.
 	  	setPrefix: function (prefix) {
 	  		this.options.prefix = prefix;
 	  		this._update();
@@ -18856,7 +18903,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// @method addAttribution(text: String): this
-	  	// Adds an attribution text (e.g. `'Vector data &copy; Mapbox'`).
+	  	// Adds an attribution text (e.g. `'&copy; OpenStreetMap contributors'`).
 	  	addAttribution: function (text) {
 	  		if (!text) { return this; }
 
@@ -18903,7 +18950,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			prefixAndAttribs.push(attribs.join(', '));
 	  		}
 
-	  		this._container.innerHTML = prefixAndAttribs.join(' | ');
+	  		this._container.innerHTML = prefixAndAttribs.join(' <span aria-hidden="true">|</span> ');
 	  	}
 	  });
 
@@ -19012,20 +19059,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * ```
 	   */
 
-	  var START = touch ? 'touchstart mousedown' : 'mousedown';
-	  var END = {
-	  	mousedown: 'mouseup',
-	  	touchstart: 'touchend',
-	  	pointerdown: 'touchend',
-	  	MSPointerDown: 'touchend'
-	  };
-	  var MOVE = {
-	  	mousedown: 'mousemove',
-	  	touchstart: 'touchmove',
-	  	pointerdown: 'touchmove',
-	  	MSPointerDown: 'touchmove'
-	  };
-
+	  var START = Browser.touch ? 'touchstart mousedown' : 'mousedown';
 
 	  var Draggable = Evented.extend({
 
@@ -19040,12 +19074,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	// @constructor L.Draggable(el: HTMLElement, dragHandle?: HTMLElement, preventOutline?: Boolean, options?: Draggable options)
 	  	// Creates a `Draggable` object for moving `el` when you start dragging the `dragHandle` element (equals `el` itself by default).
-	  	initialize: function (element, dragStartTarget, preventOutline$$1, options) {
+	  	initialize: function (element, dragStartTarget, preventOutline, options) {
 	  		setOptions(this, options);
 
 	  		this._element = element;
 	  		this._dragStartTarget = dragStartTarget || element;
-	  		this._preventOutline = preventOutline$$1;
+	  		this._preventOutline = preventOutline;
 	  	},
 
 	  	// @method enable()
@@ -19066,7 +19100,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// If we're currently dragging this draggable,
 	  		// disabling it counts as first ending the drag.
 	  		if (Draggable._dragging === this) {
-	  			this.finishDrag();
+	  			this.finishDrag(true);
 	  		}
 
 	  		off(this._dragStartTarget, START, this._onDown, this);
@@ -19076,16 +19110,21 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_onDown: function (e) {
-	  		// Ignore simulated events, since we handle both touch and
-	  		// mouse explicitly; otherwise we risk getting duplicates of
-	  		// touch events, see #4315.
-	  		// Also ignore the event if disabled; this happens in IE11
+	  		// Ignore the event if disabled; this happens in IE11
 	  		// under some circumstances, see #3666.
-	  		if (e._simulated || !this._enabled) { return; }
+	  		if (!this._enabled) { return; }
 
 	  		this._moved = false;
 
 	  		if (hasClass(this._element, 'leaflet-zoom-anim')) { return; }
+
+	  		if (e.touches && e.touches.length !== 1) {
+	  			// Finish dragging to avoid conflict with touchZoom
+	  			if (Draggable._dragging === this) {
+	  				this.finishDrag();
+	  			}
+	  			return;
+	  		}
 
 	  		if (Draggable._dragging || e.shiftKey || ((e.which !== 1) && (e.button !== 1) && !e.touches)) { return; }
 	  		Draggable._dragging = this;  // Prevent dragging multiple objects at once.
@@ -19107,21 +19146,20 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		    sizedParent = getSizedParentNode(this._element);
 
 	  		this._startPoint = new Point(first.clientX, first.clientY);
+	  		this._startPos = getPosition(this._element);
 
 	  		// Cache the scale, so that we can continuously compensate for it during drag (_onMove).
 	  		this._parentScale = getScale(sizedParent);
 
-	  		on(document, MOVE[e.type], this._onMove, this);
-	  		on(document, END[e.type], this._onUp, this);
+	  		var mouseevent = e.type === 'mousedown';
+	  		on(document, mouseevent ? 'mousemove' : 'touchmove', this._onMove, this);
+	  		on(document, mouseevent ? 'mouseup' : 'touchend touchcancel', this._onUp, this);
 	  	},
 
 	  	_onMove: function (e) {
-	  		// Ignore simulated events, since we handle both touch and
-	  		// mouse explicitly; otherwise we risk getting duplicates of
-	  		// touch events, see #4315.
-	  		// Also ignore the event if disabled; this happens in IE11
+	  		// Ignore the event if disabled; this happens in IE11
 	  		// under some circumstances, see #3666.
-	  		if (e._simulated || !this._enabled) { return; }
+	  		if (!this._enabled) { return; }
 
 	  		if (e.touches && e.touches.length > 1) {
 	  			this._moved = true;
@@ -19148,7 +19186,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			this.fire('dragstart');
 
 	  			this._moved = true;
-	  			this._startPos = getPosition(this._element).subtract(offset);
 
 	  			addClass(document.body, 'leaflet-dragging');
 
@@ -19164,9 +19201,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this._newPos = this._startPos.add(offset);
 	  		this._moving = true;
 
-	  		cancelAnimFrame(this._animRequest);
 	  		this._lastEvent = e;
-	  		this._animRequest = requestAnimFrame(this._updatePosition, this, true);
+	  		this._updatePosition();
 	  	},
 
 	  	_updatePosition: function () {
@@ -19183,17 +19219,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this.fire('drag', e);
 	  	},
 
-	  	_onUp: function (e) {
-	  		// Ignore simulated events, since we handle both touch and
-	  		// mouse explicitly; otherwise we risk getting duplicates of
-	  		// touch events, see #4315.
-	  		// Also ignore the event if disabled; this happens in IE11
+	  	_onUp: function () {
+	  		// Ignore the event if disabled; this happens in IE11
 	  		// under some circumstances, see #3666.
-	  		if (e._simulated || !this._enabled) { return; }
+	  		if (!this._enabled) { return; }
 	  		this.finishDrag();
 	  	},
 
-	  	finishDrag: function () {
+	  	finishDrag: function (noInertia) {
 	  		removeClass(document.body, 'leaflet-dragging');
 
 	  		if (this._lastTarget) {
@@ -19201,30 +19234,161 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			this._lastTarget = null;
 	  		}
 
-	  		for (var i in MOVE) {
-	  			off(document, MOVE[i], this._onMove, this);
-	  			off(document, END[i], this._onUp, this);
-	  		}
+	  		off(document, 'mousemove touchmove', this._onMove, this);
+	  		off(document, 'mouseup touchend touchcancel', this._onUp, this);
 
 	  		enableImageDrag();
 	  		enableTextSelection();
 
-	  		if (this._moved && this._moving) {
-	  			// ensure drag is not fired after dragend
-	  			cancelAnimFrame(this._animRequest);
-
-	  			// @event dragend: DragEndEvent
-	  			// Fired when the drag ends.
-	  			this.fire('dragend', {
-	  				distance: this._newPos.distanceTo(this._startPos)
-	  			});
-	  		}
+	  		var fireDragend = this._moved && this._moving;
 
 	  		this._moving = false;
 	  		Draggable._dragging = false;
+
+	  		if (fireDragend) {
+	  			// @event dragend: DragEndEvent
+	  			// Fired when the drag ends.
+	  			this.fire('dragend', {
+	  				noInertia: noInertia,
+	  				distance: this._newPos.distanceTo(this._startPos)
+	  			});
+	  		}
 	  	}
 
 	  });
+
+	  /*
+	   * @namespace PolyUtil
+	   * Various utility functions for polygon geometries.
+	   */
+
+	  /* @function clipPolygon(points: Point[], bounds: Bounds, round?: Boolean): Point[]
+	   * Clips the polygon geometry defined by the given `points` by the given bounds (using the [Sutherland-Hodgman algorithm](https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm)).
+	   * Used by Leaflet to only show polygon points that are on the screen or near, increasing
+	   * performance. Note that polygon points needs different algorithm for clipping
+	   * than polyline, so there's a separate method for it.
+	   */
+	  function clipPolygon(points, bounds, round) {
+	  	var clippedPoints,
+	  	    edges = [1, 4, 2, 8],
+	  	    i, j, k,
+	  	    a, b,
+	  	    len, edge, p;
+
+	  	for (i = 0, len = points.length; i < len; i++) {
+	  		points[i]._code = _getBitCode(points[i], bounds);
+	  	}
+
+	  	// for each edge (left, bottom, right, top)
+	  	for (k = 0; k < 4; k++) {
+	  		edge = edges[k];
+	  		clippedPoints = [];
+
+	  		for (i = 0, len = points.length, j = len - 1; i < len; j = i++) {
+	  			a = points[i];
+	  			b = points[j];
+
+	  			// if a is inside the clip window
+	  			if (!(a._code & edge)) {
+	  				// if b is outside the clip window (a->b goes out of screen)
+	  				if (b._code & edge) {
+	  					p = _getEdgeIntersection(b, a, edge, bounds, round);
+	  					p._code = _getBitCode(p, bounds);
+	  					clippedPoints.push(p);
+	  				}
+	  				clippedPoints.push(a);
+
+	  			// else if b is inside the clip window (a->b enters the screen)
+	  			} else if (!(b._code & edge)) {
+	  				p = _getEdgeIntersection(b, a, edge, bounds, round);
+	  				p._code = _getBitCode(p, bounds);
+	  				clippedPoints.push(p);
+	  			}
+	  		}
+	  		points = clippedPoints;
+	  	}
+
+	  	return points;
+	  }
+
+	  /* @function polygonCenter(latlngs: LatLng[], crs: CRS): LatLng
+	   * Returns the center ([centroid](http://en.wikipedia.org/wiki/Centroid)) of the passed LatLngs (first ring) from a polygon.
+	   */
+	  function polygonCenter(latlngs, crs) {
+	  	var i, j, p1, p2, f, area, x, y, center;
+
+	  	if (!latlngs || latlngs.length === 0) {
+	  		throw new Error('latlngs not passed');
+	  	}
+
+	  	if (!isFlat(latlngs)) {
+	  		console.warn('latlngs are not flat! Only the first ring will be used');
+	  		latlngs = latlngs[0];
+	  	}
+
+	  	var centroidLatLng = toLatLng([0, 0]);
+
+	  	var bounds = toLatLngBounds(latlngs);
+	  	var areaBounds = bounds.getNorthWest().distanceTo(bounds.getSouthWest()) * bounds.getNorthEast().distanceTo(bounds.getNorthWest());
+	  	// tests showed that below 1700 rounding errors are happening
+	  	if (areaBounds < 1700) {
+	  		// getting a inexact center, to move the latlngs near to [0, 0] to prevent rounding errors
+	  		centroidLatLng = centroid(latlngs);
+	  	}
+
+	  	var len = latlngs.length;
+	  	var points = [];
+	  	for (i = 0; i < len; i++) {
+	  		var latlng = toLatLng(latlngs[i]);
+	  		points.push(crs.project(toLatLng([latlng.lat - centroidLatLng.lat, latlng.lng - centroidLatLng.lng])));
+	  	}
+
+	  	area = x = y = 0;
+
+	  	// polygon centroid algorithm;
+	  	for (i = 0, j = len - 1; i < len; j = i++) {
+	  		p1 = points[i];
+	  		p2 = points[j];
+
+	  		f = p1.y * p2.x - p2.y * p1.x;
+	  		x += (p1.x + p2.x) * f;
+	  		y += (p1.y + p2.y) * f;
+	  		area += f * 3;
+	  	}
+
+	  	if (area === 0) {
+	  		// Polygon is so small that all points are on same pixel.
+	  		center = points[0];
+	  	} else {
+	  		center = [x / area, y / area];
+	  	}
+
+	  	var latlngCenter = crs.unproject(toPoint(center));
+	  	return toLatLng([latlngCenter.lat + centroidLatLng.lat, latlngCenter.lng + centroidLatLng.lng]);
+	  }
+
+	  /* @function centroid(latlngs: LatLng[]): LatLng
+	   * Returns the 'center of mass' of the passed LatLngs.
+	   */
+	  function centroid(coords) {
+	  	var latSum = 0;
+	  	var lngSum = 0;
+	  	var len = 0;
+	  	for (var i = 0; i < coords.length; i++) {
+	  		var latlng = toLatLng(coords[i]);
+	  		latSum += latlng.lat;
+	  		lngSum += latlng.lng;
+	  		len++;
+	  	}
+	  	return toLatLng([latSum / len, lngSum / len]);
+	  }
+
+	  var PolyUtil = {
+	    __proto__: null,
+	    clipPolygon: clipPolygon,
+	    polygonCenter: polygonCenter,
+	    centroid: centroid
+	  };
 
 	  /*
 	   * @namespace LineUtil
@@ -19238,11 +19402,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // @function simplify(points: Point[], tolerance: Number): Point[]
 	  // Dramatically reduces the number of points in a polyline while retaining
 	  // its shape and returns a new array of simplified points, using the
-	  // [Douglas-Peucker algorithm](http://en.wikipedia.org/wiki/Douglas-Peucker_algorithm).
+	  // [Ramer-Douglas-Peucker algorithm](https://en.wikipedia.org/wiki/Ramer-Douglas-Peucker_algorithm).
 	  // Used for a huge performance boost when processing/displaying Leaflet polylines for
 	  // each zoom level and also reducing visual noise. tolerance affects the amount of
 	  // simplification (lesser value means higher quality but slower and with more points).
-	  // Also released as a separated micro-library [Simplify.js](http://mourner.github.com/simplify-js/).
+	  // Also released as a separated micro-library [Simplify.js](https://mourner.github.io/simplify-js/).
 	  function simplify(points, tolerance) {
 	  	if (!tolerance || !points.length) {
 	  		return points.slice();
@@ -19271,7 +19435,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return _sqClosestPointOnSegment(p, p1, p2);
 	  }
 
-	  // Douglas-Peucker simplification, see http://en.wikipedia.org/wiki/Douglas-Peucker_algorithm
+	  // Ramer-Douglas-Peucker simplification, see https://en.wikipedia.org/wiki/Ramer-Douglas-Peucker_algorithm
 	  function _simplifyDP(points, sqTolerance) {
 
 	  	var len = points.length,
@@ -19465,7 +19629,69 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return isFlat(latlngs);
 	  }
 
-	  var LineUtil = ({
+	  /* @function polylineCenter(latlngs: LatLng[], crs: CRS): LatLng
+	   * Returns the center ([centroid](http://en.wikipedia.org/wiki/Centroid)) of the passed LatLngs (first ring) from a polyline.
+	   */
+	  function polylineCenter(latlngs, crs) {
+	  	var i, halfDist, segDist, dist, p1, p2, ratio, center;
+
+	  	if (!latlngs || latlngs.length === 0) {
+	  		throw new Error('latlngs not passed');
+	  	}
+
+	  	if (!isFlat(latlngs)) {
+	  		console.warn('latlngs are not flat! Only the first ring will be used');
+	  		latlngs = latlngs[0];
+	  	}
+
+	  	var centroidLatLng = toLatLng([0, 0]);
+
+	  	var bounds = toLatLngBounds(latlngs);
+	  	var areaBounds = bounds.getNorthWest().distanceTo(bounds.getSouthWest()) * bounds.getNorthEast().distanceTo(bounds.getNorthWest());
+	  	// tests showed that below 1700 rounding errors are happening
+	  	if (areaBounds < 1700) {
+	  		// getting a inexact center, to move the latlngs near to [0, 0] to prevent rounding errors
+	  		centroidLatLng = centroid(latlngs);
+	  	}
+
+	  	var len = latlngs.length;
+	  	var points = [];
+	  	for (i = 0; i < len; i++) {
+	  		var latlng = toLatLng(latlngs[i]);
+	  		points.push(crs.project(toLatLng([latlng.lat - centroidLatLng.lat, latlng.lng - centroidLatLng.lng])));
+	  	}
+
+	  	for (i = 0, halfDist = 0; i < len - 1; i++) {
+	  		halfDist += points[i].distanceTo(points[i + 1]) / 2;
+	  	}
+
+	  	// The line is so small in the current view that all points are on the same pixel.
+	  	if (halfDist === 0) {
+	  		center = points[0];
+	  	} else {
+	  		for (i = 0, dist = 0; i < len - 1; i++) {
+	  			p1 = points[i];
+	  			p2 = points[i + 1];
+	  			segDist = p1.distanceTo(p2);
+	  			dist += segDist;
+
+	  			if (dist > halfDist) {
+	  				ratio = (dist - halfDist) / segDist;
+	  				center = [
+	  					p2.x - ratio * (p2.x - p1.x),
+	  					p2.y - ratio * (p2.y - p1.y)
+	  				];
+	  				break;
+	  			}
+	  		}
+	  	}
+
+	  	var latlngCenter = crs.unproject(toPoint(center));
+	  	return toLatLng([latlngCenter.lat + centroidLatLng.lat, latlngCenter.lng + centroidLatLng.lng]);
+	  }
+
+	  var LineUtil = {
+	    __proto__: null,
 	    simplify: simplify,
 	    pointToSegmentDistance: pointToSegmentDistance,
 	    closestPointOnSegment: closestPointOnSegment,
@@ -19474,66 +19700,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	    _getBitCode: _getBitCode,
 	    _sqClosestPointOnSegment: _sqClosestPointOnSegment,
 	    isFlat: isFlat,
-	    _flat: _flat
-	  });
-
-	  /*
-	   * @namespace PolyUtil
-	   * Various utility functions for polygon geometries.
-	   */
-
-	  /* @function clipPolygon(points: Point[], bounds: Bounds, round?: Boolean): Point[]
-	   * Clips the polygon geometry defined by the given `points` by the given bounds (using the [Sutherland-Hodgman algorithm](https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm)).
-	   * Used by Leaflet to only show polygon points that are on the screen or near, increasing
-	   * performance. Note that polygon points needs different algorithm for clipping
-	   * than polyline, so there's a separate method for it.
-	   */
-	  function clipPolygon(points, bounds, round) {
-	  	var clippedPoints,
-	  	    edges = [1, 4, 2, 8],
-	  	    i, j, k,
-	  	    a, b,
-	  	    len, edge, p;
-
-	  	for (i = 0, len = points.length; i < len; i++) {
-	  		points[i]._code = _getBitCode(points[i], bounds);
-	  	}
-
-	  	// for each edge (left, bottom, right, top)
-	  	for (k = 0; k < 4; k++) {
-	  		edge = edges[k];
-	  		clippedPoints = [];
-
-	  		for (i = 0, len = points.length, j = len - 1; i < len; j = i++) {
-	  			a = points[i];
-	  			b = points[j];
-
-	  			// if a is inside the clip window
-	  			if (!(a._code & edge)) {
-	  				// if b is outside the clip window (a->b goes out of screen)
-	  				if (b._code & edge) {
-	  					p = _getEdgeIntersection(b, a, edge, bounds, round);
-	  					p._code = _getBitCode(p, bounds);
-	  					clippedPoints.push(p);
-	  				}
-	  				clippedPoints.push(a);
-
-	  			// else if b is inside the clip window (a->b enters the screen)
-	  			} else if (!(b._code & edge)) {
-	  				p = _getEdgeIntersection(b, a, edge, bounds, round);
-	  				p._code = _getBitCode(p, bounds);
-	  				clippedPoints.push(p);
-	  			}
-	  		}
-	  		points = clippedPoints;
-	  	}
-
-	  	return points;
-	  }
-
-	  var PolyUtil = ({
-	    clipPolygon: clipPolygon
-	  });
+	    _flat: _flat,
+	    polylineCenter: polylineCenter
+	  };
 
 	  /*
 	   * @namespace Projection
@@ -19610,7 +19779,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * @class Projection
 
 	   * An object with methods for projecting geographical coordinates of the world onto
-	   * a flat surface (and back). See [Map projection](http://en.wikipedia.org/wiki/Map_projection).
+	   * a flat surface (and back). See [Map projection](https://en.wikipedia.org/wiki/Map_projection).
 
 	   * @property bounds: Bounds
 	   * The bounds (specified in CRS units) where the projection is valid
@@ -19629,11 +19798,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	   */
 
-	  var index = ({
+	  var index = {
+	    __proto__: null,
 	    LonLat: LonLat,
 	    Mercator: Mercator,
 	    SphericalMercator: SphericalMercator
-	  });
+	  };
 
 	  /*
 	   * @namespace CRS
@@ -19820,10 +19990,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		this.onAdd(map);
 
-	  		if (this.getAttribution && map.attributionControl) {
-	  			map.attributionControl.addAttribution(this.getAttribution());
-	  		}
-
 	  		this.fire('add');
 	  		map.fire('layeradd', {layer: this});
 	  	}
@@ -19896,10 +20062,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			layer.onRemove(this);
 	  		}
 
-	  		if (layer.getAttribution && this.attributionControl) {
-	  			this.attributionControl.removeAttribution(layer.getAttribution());
-	  		}
-
 	  		delete this._layers[id];
 
 	  		if (this._loaded) {
@@ -19915,7 +20077,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method hasLayer(layer: Layer): Boolean
 	  	// Returns `true` if the given layer is currently added to the map
 	  	hasLayer: function (layer) {
-	  		return !!layer && (stamp(layer) in this._layers);
+	  		return stamp(layer) in this._layers;
 	  	},
 
 	  	/* @method eachLayer(fn: Function, context?: Object): this
@@ -19942,7 +20104,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_addZoomLimit: function (layer) {
-	  		if (isNaN(layer.options.maxZoom) || !isNaN(layer.options.minZoom)) {
+	  		if (!isNaN(layer.options.maxZoom) || !isNaN(layer.options.minZoom)) {
 	  			this._zoomBoundLayers[stamp(layer)] = layer;
 	  			this._updateZoomLevels();
 	  		}
@@ -19992,7 +20154,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  /*
 	   * @class LayerGroup
 	   * @aka L.LayerGroup
-	   * @inherits Layer
+	   * @inherits Interactive layer
 	   *
 	   * Used to group several layers and handle them as one. If you add it to the map,
 	   * any layers added or removed from the group will be added/removed on the map as
@@ -20060,7 +20222,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method hasLayer(id: Number): Boolean
 	  	// Returns `true` if the given internal ID is currently added to the group.
 	  	hasLayer: function (layer) {
-	  		if (!layer) { return false; }
 	  		var layerId = typeof layer === 'number' ? layer : this.getLayerId(layer);
 	  		return layerId in this._layers;
 	  	},
@@ -20310,7 +20471,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	options: {
 	  		popupAnchor: [0, 0],
-	  		tooltipAnchor: [0, 0]
+	  		tooltipAnchor: [0, 0],
+
+	  		// @option crossOrigin: Boolean|String = false
+	  		// Whether the crossOrigin attribute will be added to the tiles.
+	  		// If a String is provided, all tiles will have their crossOrigin attribute set to the String provided. This is needed if you want to access tile pixel data.
+	  		// Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
+	  		crossOrigin: false
 	  	},
 
 	  	initialize: function (options) {
@@ -20342,6 +20509,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		var img = this._createImg(src, oldIcon && oldIcon.tagName === 'IMG' ? oldIcon : null);
 	  		this._setIconStyles(img, name);
+
+	  		if (this.options.crossOrigin || this.options.crossOrigin === '') {
+	  			img.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+	  		}
 
 	  		return img;
 	  	},
@@ -20378,7 +20549,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_getIconUrl: function (name) {
-	  		return retina && this.options[name + 'RetinaUrl'] || this.options[name + 'Url'];
+	  		return Browser.retina && this.options[name + 'RetinaUrl'] || this.options[name + 'Url'];
 	  	}
 	  });
 
@@ -20419,7 +20590,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_getIconUrl: function (name) {
-	  		if (!IconDefault.imagePath) {	// Deprecated, backwards-compatibility only
+	  		if (typeof IconDefault.imagePath !== 'string') {	// Deprecated, backwards-compatibility only
 	  			IconDefault.imagePath = this._detectIconPath();
 	  		}
 
@@ -20430,20 +20601,26 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return (this.options.imagePath || IconDefault.imagePath) + Icon.prototype._getIconUrl.call(this, name);
 	  	},
 
+	  	_stripUrl: function (path) {	// separate function to use in tests
+	  		var strip = function (str, re, idx) {
+	  			var match = re.exec(str);
+	  			return match && match[idx];
+	  		};
+	  		path = strip(path, /^url\((['"])?(.+)\1\)$/, 2);
+	  		return path && strip(path, /^(.*)marker-icon\.png$/, 1);
+	  	},
+
 	  	_detectIconPath: function () {
 	  		var el = create$1('div',  'leaflet-default-icon-path', document.body);
 	  		var path = getStyle(el, 'background-image') ||
 	  		           getStyle(el, 'backgroundImage');	// IE8
 
 	  		document.body.removeChild(el);
-
-	  		if (path === null || path.indexOf('url') !== 0) {
-	  			path = '';
-	  		} else {
-	  			path = path.replace(/^url\(["']?/, '').replace(/marker-icon\.png["']?\)$/, '');
-	  		}
-
-	  		return path;
+	  		path = this._stripUrl(path);
+	  		if (path) { return path; }
+	  		var link = document.querySelector('link[href$="leaflet.css"]');
+	  		if (!link) { return ''; }
+	  		return link.href.substring(0, link.href.length - 'leaflet.css'.length - 1);
 	  	}
 	  });
 
@@ -20635,11 +20812,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		// @option title: String = ''
 	  		// Text for the browser tooltip that appear on marker hover (no tooltip by default).
+	  		// [Useful for accessibility](https://leafletjs.com/examples/accessibility/#markers-must-be-labelled).
 	  		title: '',
 
-	  		// @option alt: String = ''
-	  		// Text for the `alt` attribute of the icon image (useful for accessibility).
-	  		alt: '',
+	  		// @option alt: String = 'Marker'
+	  		// Text for the `alt` attribute of the icon image.
+	  		// [Useful for accessibility](https://leafletjs.com/examples/accessibility/#markers-must-be-labelled).
+	  		alt: 'Marker',
 
 	  		// @option zIndexOffset: Number = 0
 	  		// By default, marker images zIndex is set automatically based on its latitude. Use this option if you want to put the marker on top of all others (or below), specifying a high value like `1000` (or high negative value, respectively).
@@ -20669,6 +20848,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// When `true`, a mouse event on this marker will trigger the same event on the map
 	  		// (unless [`L.DomEvent.stopPropagation`](#domevent-stoppropagation) is used).
 	  		bubblingMouseEvents: false,
+
+	  		// @option autoPanOnFocus: Boolean = true
+	  		// When `true`, the map will pan whenever the marker is focused (via
+	  		// e.g. pressing `tab` on the keyboard) to ensure the marker is
+	  		// visible within the map's bounds
+	  		autoPanOnFocus: true,
 
 	  		// @section Draggable marker options
 	  		// @option draggable: Boolean = false
@@ -20822,6 +21007,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		if (options.keyboard) {
 	  			icon.tabIndex = '0';
+	  			icon.setAttribute('role', 'button');
 	  		}
 
 	  		this._icon = icon;
@@ -20831,6 +21017,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  				mouseover: this._bringToFront,
 	  				mouseout: this._resetZIndex
 	  			});
+	  		}
+
+	  		if (this.options.autoPanOnFocus) {
+	  			on(icon, 'focus', this._panOnFocus, this);
 	  		}
 
 	  		var newShadow = options.icon.createShadow(this._shadow),
@@ -20868,6 +21058,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  				mouseover: this._bringToFront,
 	  				mouseout: this._resetZIndex
 	  			});
+	  		}
+
+	  		if (this.options.autoPanOnFocus) {
+	  			off(this._icon, 'focus', this._panOnFocus, this);
 	  		}
 
 	  		remove(this._icon);
@@ -20962,6 +21156,20 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	_resetZIndex: function () {
 	  		this._updateZIndex(0);
+	  	},
+
+	  	_panOnFocus: function () {
+	  		var map = this._map;
+	  		if (!map) { return; }
+
+	  		var iconOpts = this.options.icon.options;
+	  		var size = iconOpts.iconSize ? toPoint(iconOpts.iconSize) : toPoint(0, 0);
+	  		var anchor = iconOpts.iconAnchor ? toPoint(iconOpts.iconAnchor) : toPoint(0, 0);
+
+	  		map.panInside(this._latlng, {
+	  			paddingTopLeft: anchor,
+	  			paddingBottomRight: size.subtract(anchor)
+	  		});
 	  	},
 
 	  	_getPopupAnchor: function () {
@@ -21123,7 +21331,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	_clickTolerance: function () {
 	  		// used when doing hit detection for Canvas layers
-	  		return (this.options.stroke ? this.options.weight / 2 : 0) + this._renderer.options.tolerance;
+	  		return (this.options.stroke ? this.options.weight / 2 : 0) +
+	  		  (this._renderer.options.tolerance || 0);
 	  	}
 	  });
 
@@ -21445,44 +21654,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// @method getCenter(): LatLng
-	  	// Returns the center ([centroid](http://en.wikipedia.org/wiki/Centroid)) of the polyline.
+	  	// Returns the center ([centroid](https://en.wikipedia.org/wiki/Centroid)) of the polyline.
 	  	getCenter: function () {
 	  		// throws error when not yet added to map as this center calculation requires projected coordinates
 	  		if (!this._map) {
 	  			throw new Error('Must add layer to map before using getCenter()');
 	  		}
-
-	  		var i, halfDist, segDist, dist, p1, p2, ratio,
-	  		    points = this._rings[0],
-	  		    len = points.length;
-
-	  		if (!len) { return null; }
-
-	  		// polyline centroid algorithm; only uses the first ring if there are multiple
-
-	  		for (i = 0, halfDist = 0; i < len - 1; i++) {
-	  			halfDist += points[i].distanceTo(points[i + 1]) / 2;
-	  		}
-
-	  		// The line is so small in the current view that all points are on the same pixel.
-	  		if (halfDist === 0) {
-	  			return this._map.layerPointToLatLng(points[0]);
-	  		}
-
-	  		for (i = 0, dist = 0; i < len - 1; i++) {
-	  			p1 = points[i];
-	  			p2 = points[i + 1];
-	  			segDist = p1.distanceTo(p2);
-	  			dist += segDist;
-
-	  			if (dist > halfDist) {
-	  				ratio = (dist - halfDist) / segDist;
-	  				return this._map.layerPointToLatLng([
-	  					p2.x - ratio * (p2.x - p1.x),
-	  					p2.y - ratio * (p2.y - p1.y)
-	  				]);
-	  			}
-	  		}
+	  		return polylineCenter(this._defaultShape(), this._map.options.crs);
 	  	},
 
 	  	// @method getBounds(): LatLngBounds
@@ -21543,6 +21721,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	_updateBounds: function () {
 	  		var w = this._clickTolerance(),
 	  		    p = new Point(w, w);
+
+	  		if (!this._rawPxBounds) {
+	  			return;
+	  		}
+
 	  		this._pxBounds = new Bounds([
 	  			this._rawPxBounds.min.subtract(p),
 	  			this._rawPxBounds.max.add(p)
@@ -21719,39 +21902,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return !this._latlngs.length || !this._latlngs[0].length;
 	  	},
 
+	  	// @method getCenter(): LatLng
+	  	// Returns the center ([centroid](http://en.wikipedia.org/wiki/Centroid)) of the Polygon.
 	  	getCenter: function () {
 	  		// throws error when not yet added to map as this center calculation requires projected coordinates
 	  		if (!this._map) {
 	  			throw new Error('Must add layer to map before using getCenter()');
 	  		}
-
-	  		var i, j, p1, p2, f, area, x, y, center,
-	  		    points = this._rings[0],
-	  		    len = points.length;
-
-	  		if (!len) { return null; }
-
-	  		// polygon centroid algorithm; only uses the first ring if there are multiple
-
-	  		area = x = y = 0;
-
-	  		for (i = 0, j = len - 1; i < len; j = i++) {
-	  			p1 = points[i];
-	  			p2 = points[j];
-
-	  			f = p1.y * p2.x - p2.y * p1.x;
-	  			x += (p1.x + p2.x) * f;
-	  			y += (p1.y + p2.y) * f;
-	  			area += f * 3;
-	  		}
-
-	  		if (area === 0) {
-	  			// Polygon is so small that all points are on same pixel.
-	  			center = points[0];
-	  		} else {
-	  			center = [x / area, y / area];
-	  		}
-	  		return this._map.layerPointToLatLng(center);
+	  		return polygonCenter(this._defaultShape(), this._map.options.crs);
 	  	},
 
 	  	_convertLatLngs: function (latlngs) {
@@ -22036,14 +22194,24 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	case 'GeometryCollection':
 	  		for (i = 0, len = geometry.geometries.length; i < len; i++) {
-	  			var layer = geometryToLayer({
+	  			var geoLayer = geometryToLayer({
 	  				geometry: geometry.geometries[i],
 	  				type: 'Feature',
 	  				properties: geojson.properties
 	  			}, options);
 
-	  			if (layer) {
-	  				layers.push(layer);
+	  			if (geoLayer) {
+	  				layers.push(geoLayer);
+	  			}
+	  		}
+	  		return new FeatureGroup(layers);
+
+	  	case 'FeatureCollection':
+	  		for (i = 0, len = geometry.features.length; i < len; i++) {
+	  			var featureLayer = geometryToLayer(geometry.features[i], options);
+
+	  			if (featureLayer) {
+	  				layers.push(featureLayer);
 	  			}
 	  		}
 	  		return new FeatureGroup(layers);
@@ -22084,29 +22252,32 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return latlngs;
 	  }
 
-	  // @function latLngToCoords(latlng: LatLng, precision?: Number): Array
+	  // @function latLngToCoords(latlng: LatLng, precision?: Number|false): Array
 	  // Reverse of [`coordsToLatLng`](#geojson-coordstolatlng)
+	  // Coordinates values are rounded with [`formatNum`](#util-formatnum) function.
 	  function latLngToCoords(latlng, precision) {
-	  	precision = typeof precision === 'number' ? precision : 6;
+	  	latlng = toLatLng(latlng);
 	  	return latlng.alt !== undefined ?
 	  		[formatNum(latlng.lng, precision), formatNum(latlng.lat, precision), formatNum(latlng.alt, precision)] :
 	  		[formatNum(latlng.lng, precision), formatNum(latlng.lat, precision)];
 	  }
 
-	  // @function latLngsToCoords(latlngs: Array, levelsDeep?: Number, closed?: Boolean): Array
+	  // @function latLngsToCoords(latlngs: Array, levelsDeep?: Number, closed?: Boolean, precision?: Number|false): Array
 	  // Reverse of [`coordsToLatLngs`](#geojson-coordstolatlngs)
 	  // `closed` determines whether the first point should be appended to the end of the array to close the feature, only used when `levelsDeep` is 0. False by default.
+	  // Coordinates values are rounded with [`formatNum`](#util-formatnum) function.
 	  function latLngsToCoords(latlngs, levelsDeep, closed, precision) {
 	  	var coords = [];
 
 	  	for (var i = 0, len = latlngs.length; i < len; i++) {
+	  		// Check for flat arrays required to ensure unbalanced arrays are correctly converted in recursion
 	  		coords.push(levelsDeep ?
-	  			latLngsToCoords(latlngs[i], levelsDeep - 1, closed, precision) :
+	  			latLngsToCoords(latlngs[i], isFlat(latlngs[i]) ? 0 : levelsDeep - 1, closed, precision) :
 	  			latLngToCoords(latlngs[i], precision));
 	  	}
 
-	  	if (!levelsDeep && closed) {
-	  		coords.push(coords[0]);
+	  	if (!levelsDeep && closed && coords.length > 0) {
+	  		coords.push(coords[0].slice());
 	  	}
 
 	  	return coords;
@@ -22143,26 +22314,23 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // @namespace Marker
 	  // @section Other methods
-	  // @method toGeoJSON(precision?: Number): Object
-	  // `precision` is the number of decimal places for coordinates.
-	  // The default value is 6 places.
-	  // Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the marker (as a GeoJSON `Point` Feature).
+	  // @method toGeoJSON(precision?: Number|false): Object
+	  // Coordinates values are rounded with [`formatNum`](#util-formatnum) function with given `precision`.
+	  // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the marker (as a GeoJSON `Point` Feature).
 	  Marker.include(PointToGeoJSON);
 
 	  // @namespace CircleMarker
-	  // @method toGeoJSON(precision?: Number): Object
-	  // `precision` is the number of decimal places for coordinates.
-	  // The default value is 6 places.
-	  // Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the circle marker (as a GeoJSON `Point` Feature).
+	  // @method toGeoJSON(precision?: Number|false): Object
+	  // Coordinates values are rounded with [`formatNum`](#util-formatnum) function with given `precision`.
+	  // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the circle marker (as a GeoJSON `Point` Feature).
 	  Circle.include(PointToGeoJSON);
 	  CircleMarker.include(PointToGeoJSON);
 
 
 	  // @namespace Polyline
-	  // @method toGeoJSON(precision?: Number): Object
-	  // `precision` is the number of decimal places for coordinates.
-	  // The default value is 6 places.
-	  // Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the polyline (as a GeoJSON `LineString` or `MultiLineString` Feature).
+	  // @method toGeoJSON(precision?: Number|false): Object
+	  // Coordinates values are rounded with [`formatNum`](#util-formatnum) function with given `precision`.
+	  // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the polyline (as a GeoJSON `LineString` or `MultiLineString` Feature).
 	  Polyline.include({
 	  	toGeoJSON: function (precision) {
 	  		var multi = !isFlat(this._latlngs);
@@ -22177,10 +22345,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  });
 
 	  // @namespace Polygon
-	  // @method toGeoJSON(precision?: Number): Object
-	  // `precision` is the number of decimal places for coordinates.
-	  // The default value is 6 places.
-	  // Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the polygon (as a GeoJSON `Polygon` or `MultiPolygon` Feature).
+	  // @method toGeoJSON(precision?: Number|false): Object
+	  // Coordinates values are rounded with [`formatNum`](#util-formatnum) function with given `precision`.
+	  // Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the polygon (as a GeoJSON `Polygon` or `MultiPolygon` Feature).
 	  Polygon.include({
 	  	toGeoJSON: function (precision) {
 	  		var holes = !isFlat(this._latlngs),
@@ -22215,10 +22382,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		});
 	  	},
 
-	  	// @method toGeoJSON(precision?: Number): Object
-	  	// `precision` is the number of decimal places for coordinates.
-	  	// The default value is 6 places.
-	  	// Returns a [`GeoJSON`](http://en.wikipedia.org/wiki/GeoJSON) representation of the layer group (as a GeoJSON `FeatureCollection`, `GeometryCollection`, or `MultiPoint`).
+	  	// @method toGeoJSON(precision?: Number|false): Object
+	  	// Coordinates values are rounded with [`formatNum`](#util-formatnum) function with given `precision`.
+	  	// Returns a [`GeoJSON`](https://en.wikipedia.org/wiki/GeoJSON) representation of the layer group (as a GeoJSON `FeatureCollection`, `GeometryCollection`, or `MultiPoint`).
 	  	toGeoJSON: function (precision) {
 
 	  		var type = this.feature && this.feature.geometry && this.feature.geometry.type;
@@ -22283,7 +22449,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * @example
 	   *
 	   * ```js
-	   * var imageUrl = 'http://www.lib.utexas.edu/maps/historical/newark_nj_1922.jpg',
+	   * var imageUrl = 'https://maps.lib.utexas.edu/maps/historical/newark_nj_1922.jpg',
 	   * 	imageBounds = [[40.712216, -74.22655], [40.773941, -74.12544]];
 	   * L.imageOverlay(imageUrl, imageBounds).addTo(map);
 	   * ```
@@ -22522,6 +22688,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			this._url = errorUrl;
 	  			this._image.src = errorUrl;
 	  		}
+	  	},
+
+	  	// @method getCenter(): LatLng
+	  	// Returns the center of the ImageOverlay.
+	  	getCenter: function () {
+	  		return this._bounds.getCenter();
 	  	}
 	  });
 
@@ -22558,6 +22730,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	options: {
 	  		// @option autoplay: Boolean = true
 	  		// Whether the video starts playing automatically when loaded.
+	  		// On some browsers autoplay will only work with `muted: true`
 	  		autoplay: true,
 
 	  		// @option loop: Boolean = true
@@ -22566,12 +22739,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		// @option keepAspectRatio: Boolean = true
 	  		// Whether the video will save aspect ratio after the projection.
-	  		// Relevant for supported browsers. Browser compatibility- https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
+	  		// Relevant for supported browsers. See [browser compatibility](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
 	  		keepAspectRatio: true,
 
 	  		// @option muted: Boolean = false
 	  		// Whether the video starts on mute when loaded.
-	  		muted: false
+	  		muted: false,
+
+	  		// @option playsInline: Boolean = true
+	  		// Mobile browsers will play the video right where it is instead of open it up in fullscreen mode.
+	  		playsInline: true
 	  	},
 
 	  	_initImage: function () {
@@ -22608,6 +22785,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		vid.autoplay = !!this.options.autoplay;
 	  		vid.loop = !!this.options.loop;
 	  		vid.muted = !!this.options.muted;
+	  		vid.playsInline = !!this.options.playsInline;
 	  		for (var i = 0; i < this._url.length; i++) {
 	  			var source = create$1('source');
 	  			source.src = this._url[i];
@@ -22678,9 +22856,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  /*
 	   * @class DivOverlay
-	   * @inherits Layer
+	   * @inherits Interactive layer
 	   * @aka L.DivOverlay
-	   * Base model for L.Popup and L.Tooltip. Inherit from it for custom popup like plugins.
+	   * Base model for L.Popup and L.Tooltip. Inherit from it for custom overlays like plugins.
 	   */
 
 	  // @namespace DivOverlay
@@ -22689,24 +22867,82 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @section
 	  	// @aka DivOverlay options
 	  	options: {
-	  		// @option offset: Point = Point(0, 7)
-	  		// The offset of the popup position. Useful to control the anchor
-	  		// of the popup when opening it on some overlays.
-	  		offset: [0, 7],
+	  		// @option interactive: Boolean = false
+	  		// If true, the popup/tooltip will listen to the mouse events.
+	  		interactive: false,
+
+	  		// @option offset: Point = Point(0, 0)
+	  		// The offset of the overlay position.
+	  		offset: [0, 0],
 
 	  		// @option className: String = ''
-	  		// A custom CSS class name to assign to the popup.
+	  		// A custom CSS class name to assign to the overlay.
 	  		className: '',
 
-	  		// @option pane: String = 'popupPane'
-	  		// `Map pane` where the popup will be added.
-	  		pane: 'popupPane'
+	  		// @option pane: String = undefined
+	  		// `Map pane` where the overlay will be added.
+	  		pane: undefined,
+
+	  		// @option content: String|HTMLElement|Function = ''
+	  		// Sets the HTML content of the overlay while initializing. If a function is passed the source layer will be
+	  		// passed to the function. The function should return a `String` or `HTMLElement` to be used in the overlay.
+	  		content: ''
 	  	},
 
 	  	initialize: function (options, source) {
-	  		setOptions(this, options);
+	  		if (options && (options instanceof LatLng || isArray(options))) {
+	  			this._latlng = toLatLng(options);
+	  			setOptions(this, source);
+	  		} else {
+	  			setOptions(this, options);
+	  			this._source = source;
+	  		}
+	  		if (this.options.content) {
+	  			this._content = this.options.content;
+	  		}
+	  	},
 
-	  		this._source = source;
+	  	// @method openOn(map: Map): this
+	  	// Adds the overlay to the map.
+	  	// Alternative to `map.openPopup(popup)`/`.openTooltip(tooltip)`.
+	  	openOn: function (map) {
+	  		map = arguments.length ? map : this._source._map; // experimental, not the part of public api
+	  		if (!map.hasLayer(this)) {
+	  			map.addLayer(this);
+	  		}
+	  		return this;
+	  	},
+
+	  	// @method close(): this
+	  	// Closes the overlay.
+	  	// Alternative to `map.closePopup(popup)`/`.closeTooltip(tooltip)`
+	  	// and `layer.closePopup()`/`.closeTooltip()`.
+	  	close: function () {
+	  		if (this._map) {
+	  			this._map.removeLayer(this);
+	  		}
+	  		return this;
+	  	},
+
+	  	// @method toggle(layer?: Layer): this
+	  	// Opens or closes the overlay bound to layer depending on its current state.
+	  	// Argument may be omitted only for overlay bound to layer.
+	  	// Alternative to `layer.togglePopup()`/`.toggleTooltip()`.
+	  	toggle: function (layer) {
+	  		if (this._map) {
+	  			this.close();
+	  		} else {
+	  			if (arguments.length) {
+	  				this._source = layer;
+	  			} else {
+	  				layer = this._source;
+	  			}
+	  			this._prepareOpen();
+
+	  			// open the overlay on the map
+	  			this.openOn(layer._map);
+	  		}
+	  		return this;
 	  	},
 
 	  	onAdd: function (map) {
@@ -22729,6 +22965,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		}
 
 	  		this.bringToFront();
+
+	  		if (this.options.interactive) {
+	  			addClass(this._container, 'leaflet-interactive');
+	  			this.addInteractiveTarget(this._container);
+	  		}
 	  	},
 
 	  	onRemove: function (map) {
@@ -22738,17 +22979,22 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		} else {
 	  			remove(this._container);
 	  		}
+
+	  		if (this.options.interactive) {
+	  			removeClass(this._container, 'leaflet-interactive');
+	  			this.removeInteractiveTarget(this._container);
+	  		}
 	  	},
 
-	  	// @namespace Popup
+	  	// @namespace DivOverlay
 	  	// @method getLatLng: LatLng
-	  	// Returns the geographical point of popup.
+	  	// Returns the geographical point of the overlay.
 	  	getLatLng: function () {
 	  		return this._latlng;
 	  	},
 
 	  	// @method setLatLng(latlng: LatLng): this
-	  	// Sets the geographical point where the popup will open.
+	  	// Sets the geographical point where the overlay will open.
 	  	setLatLng: function (latlng) {
 	  		this._latlng = toLatLng(latlng);
 	  		if (this._map) {
@@ -22759,13 +23005,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// @method getContent: String|HTMLElement
-	  	// Returns the content of the popup.
+	  	// Returns the content of the overlay.
 	  	getContent: function () {
 	  		return this._content;
 	  	},
 
 	  	// @method setContent(htmlContent: String|HTMLElement|Function): this
-	  	// Sets the HTML content of the popup. If a function is passed the source layer will be passed to the function. The function should return a `String` or `HTMLElement` to be used in the popup.
+	  	// Sets the HTML content of the overlay. If a function is passed the source layer will be passed to the function.
+	  	// The function should return a `String` or `HTMLElement` to be used in the overlay.
 	  	setContent: function (content) {
 	  		this._content = content;
 	  		this.update();
@@ -22773,13 +23020,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// @method getElement: String|HTMLElement
-	  	// Returns the HTML container of the popup.
+	  	// Returns the HTML container of the overlay.
 	  	getElement: function () {
 	  		return this._container;
 	  	},
 
 	  	// @method update: null
-	  	// Updates the popup content, layout and position. Useful for updating the popup after something inside changed, e.g. image loaded.
+	  	// Updates the overlay content, layout and position. Useful for updating the overlay after something inside changed, e.g. image loaded.
 	  	update: function () {
 	  		if (!this._map) { return; }
 
@@ -22807,13 +23054,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// @method isOpen: Boolean
-	  	// Returns `true` when the popup is visible on the map.
+	  	// Returns `true` when the overlay is visible on the map.
 	  	isOpen: function () {
 	  		return !!this._map && this._map.hasLayer(this);
 	  	},
 
 	  	// @method bringToFront: this
-	  	// Brings this popup in front of other popups (in the same map pane).
+	  	// Brings this overlay in front of other overlays (in the same map pane).
 	  	bringToFront: function () {
 	  		if (this._map) {
 	  			toFront(this._container);
@@ -22822,7 +23069,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	// @method bringToBack: this
-	  	// Brings this popup to the back of other popups (in the same map pane).
+	  	// Brings this overlay to the back of other overlays (in the same map pane).
 	  	bringToBack: function () {
 	  		if (this._map) {
 	  			toBack(this._container);
@@ -22830,36 +23077,45 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this;
 	  	},
 
-	  	_prepareOpen: function (parent, layer, latlng) {
-	  		if (!(layer instanceof Layer)) {
-	  			latlng = layer;
-	  			layer = parent;
-	  		}
+	  	// prepare bound overlay to open: update latlng pos / content source (for FeatureGroup)
+	  	_prepareOpen: function (latlng) {
+	  		var source = this._source;
+	  		if (!source._map) { return false; }
 
-	  		if (layer instanceof FeatureGroup) {
-	  			for (var id in parent._layers) {
-	  				layer = parent._layers[id];
-	  				break;
+	  		if (source instanceof FeatureGroup) {
+	  			source = null;
+	  			var layers = this._source._layers;
+	  			for (var id in layers) {
+	  				if (layers[id]._map) {
+	  					source = layers[id];
+	  					break;
+	  				}
 	  			}
+	  			if (!source) { return false; } // Unable to get source layer.
+
+	  			// set overlay source to this layer
+	  			this._source = source;
 	  		}
 
 	  		if (!latlng) {
-	  			if (layer.getCenter) {
-	  				latlng = layer.getCenter();
-	  			} else if (layer.getLatLng) {
-	  				latlng = layer.getLatLng();
+	  			if (source.getCenter) {
+	  				latlng = source.getCenter();
+	  			} else if (source.getLatLng) {
+	  				latlng = source.getLatLng();
+	  			} else if (source.getBounds) {
+	  				latlng = source.getBounds().getCenter();
 	  			} else {
 	  				throw new Error('Unable to get source layer LatLng.');
 	  			}
 	  		}
+	  		this.setLatLng(latlng);
 
-	  		// set overlay source to this layer
-	  		this._source = layer;
+	  		if (this._map) {
+	  			// update the overlay (content, layout, etc...)
+	  			this.update();
+	  		}
 
-	  		// update the overlay (content, layout, ect...)
-	  		this.update();
-
-	  		return latlng;
+	  		return true;
 	  	},
 
 	  	_updateContent: function () {
@@ -22876,6 +23132,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			}
 	  			node.appendChild(content);
 	  		}
+
+	  		// @namespace DivOverlay
+	  		// @section DivOverlay events
+	  		// @event contentupdate: Event
+	  		// Fired when the content of the overlay is updated
 	  		this.fire('contentupdate');
 	  	},
 
@@ -22895,7 +23156,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		var bottom = this._containerBottom = -offset.y,
 	  		    left = this._containerLeft = -Math.round(this._containerWidth / 2) + offset.x;
 
-	  		// bottom position the popup in case the height of the popup changes (images loading etc)
+	  		// bottom position the overlay in case the height of the overlay changes (images loading etc)
 	  		this._container.style.bottom = bottom + 'px';
 	  		this._container.style.left = left + 'px';
 	  	},
@@ -22904,6 +23165,34 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return [0, 0];
 	  	}
 
+	  });
+
+	  Map.include({
+	  	_initOverlay: function (OverlayClass, content, latlng, options) {
+	  		var overlay = content;
+	  		if (!(overlay instanceof OverlayClass)) {
+	  			overlay = new OverlayClass(options).setContent(content);
+	  		}
+	  		if (latlng) {
+	  			overlay.setLatLng(latlng);
+	  		}
+	  		return overlay;
+	  	}
+	  });
+
+
+	  Layer.include({
+	  	_initOverlay: function (OverlayClass, old, content, options) {
+	  		var overlay = content;
+	  		if (overlay instanceof OverlayClass) {
+	  			setOptions(overlay, options);
+	  			overlay._source = this;
+	  		} else {
+	  			overlay = (old && !options) ? old : new OverlayClass(options, this);
+	  			overlay.setContent(content);
+	  		}
+	  		return overlay;
+	  	}
 	  });
 
 	  /*
@@ -22922,12 +23211,18 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * marker.bindPopup(popupContent).openPopup();
 	   * ```
 	   * Path overlays like polylines also have a `bindPopup` method.
-	   * Here's a more complicated way to open a popup on a map:
+	   *
+	   * A popup can be also standalone:
 	   *
 	   * ```js
 	   * var popup = L.popup()
 	   * 	.setLatLng(latlng)
 	   * 	.setContent('<p>Hello world!<br />This is a nice popup.</p>')
+	   * 	.openOn(map);
+	   * ```
+	   * or
+	   * ```js
+	   * var popup = L.popup(latlng, {content: '<p>Hello world!<br />This is a nice popup.</p>')
 	   * 	.openOn(map);
 	   * ```
 	   */
@@ -22939,6 +23234,14 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @section
 	  	// @aka Popup options
 	  	options: {
+	  		// @option pane: String = 'popupPane'
+	  		// `Map pane` where the popup will be added.
+	  		pane: 'popupPane',
+
+	  		// @option offset: Point = Point(0, 7)
+	  		// The offset of the popup position.
+	  		offset: [0, 7],
+
 	  		// @option maxWidth: Number = 300
 	  		// Max width of the popup, in pixels.
 	  		maxWidth: 300,
@@ -22950,6 +23253,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// @option maxHeight: Number = null
 	  		// If set, creates a scrollable container of the given height
 	  		// inside a popup if its content exceeds it.
+	  		// The scrollable container can be styled using the
+	  		// `leaflet-popup-scrolled` CSS class selector.
 	  		maxHeight: null,
 
 	  		// @option autoPan: Boolean = true
@@ -23001,10 +23306,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	// @namespace Popup
 	  	// @method openOn(map: Map): this
-	  	// Adds the popup to the map and closes the previous one. The same as `map.openPopup(popup)`.
+	  	// Alternative to `map.openPopup(popup)`.
+	  	// Adds the popup to the map and closes the previous one.
 	  	openOn: function (map) {
-	  		map.openPopup(this);
-	  		return this;
+	  		map = arguments.length ? map : this._source._map; // experimental, not the part of public api
+
+	  		if (!map.hasLayer(this) && map._popup && map._popup.options.autoClose) {
+	  			map.removeLayer(map._popup);
+	  		}
+	  		map._popup = this;
+
+	  		return DivOverlay.prototype.openOn.call(this, map);
 	  	},
 
 	  	onAdd: function (map) {
@@ -23055,7 +23367,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		var events = DivOverlay.prototype.getEvents.call(this);
 
 	  		if (this.options.closeOnClick !== undefined ? this.options.closeOnClick : this._map.options.closePopupOnClick) {
-	  			events.preclick = this._close;
+	  			events.preclick = this.close;
 	  		}
 
 	  		if (this.options.keepInView) {
@@ -23063,12 +23375,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		}
 
 	  		return events;
-	  	},
-
-	  	_close: function () {
-	  		if (this._map) {
-	  			this._map.closePopup(this);
-	  		}
 	  	},
 
 	  	_initLayout: function () {
@@ -23089,10 +23395,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		if (this.options.closeButton) {
 	  			var closeButton = this._closeButton = create$1('a', prefix + '-close-button', container);
+	  			closeButton.setAttribute('role', 'button'); // overrides the implicit role=link of <a> elements #7399
+	  			closeButton.setAttribute('aria-label', 'Close popup');
 	  			closeButton.href = '#close';
-	  			closeButton.innerHTML = '&#215;';
+	  			closeButton.innerHTML = '<span aria-hidden="true">&#215;</span>';
 
-	  			on(closeButton, 'click', this._onCloseButtonClick, this);
+	  			on(closeButton, 'click', function (ev) {
+	  				preventDefault(ev);
+	  				this.close();
+	  			}, this);
 	  		}
 	  	},
 
@@ -23136,6 +23447,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		if (!this.options.autoPan) { return; }
 	  		if (this._map._panAnim) { this._map._panAnim.stop(); }
 
+	  		// We can endlessly recurse if keepInView is set and the view resets.
+	  		// Let's guard against that by exiting early if we're responding to our own autopan.
+	  		if (this._autopanning) {
+	  			this._autopanning = false;
+	  			return;
+	  		}
+
 	  		var map = this._map,
 	  		    marginBottom = parseInt(getStyle(this._container, 'marginBottom'), 10) || 0,
 	  		    containerHeight = this._container.offsetHeight + marginBottom,
@@ -23170,15 +23488,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// @event autopanstart: Event
 	  		// Fired when the map starts autopanning when opening a popup.
 	  		if (dx || dy) {
+	  			// Track that we're autopanning, as this function will be re-ran on moveend
+	  			if (this.options.keepInView) {
+	  				this._autopanning = true;
+	  			}
+
 	  			map
 	  			    .fire('autopanstart')
 	  			    .panBy([dx, dy]);
 	  		}
-	  	},
-
-	  	_onCloseButtonClick: function (e) {
-	  		this._close();
-	  		stop(e);
 	  	},
 
 	  	_getAnchor: function () {
@@ -23191,6 +23509,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // @namespace Popup
 	  // @factory L.popup(options?: Popup options, source?: Layer)
 	  // Instantiates a `Popup` object given an optional `options` object that describes its appearance and location and an optional `source` object that is used to tag the popup with a reference to the Layer to which it refers.
+	  // @alternative
+	  // @factory L.popup(latlng: LatLng, options?: Popup options)
+	  // Instantiates a `Popup` object given `latlng` where the popup will open and an optional `options` object that describes its appearance and location.
 	  var popup = function (options, source) {
 	  	return new Popup(options, source);
 	  };
@@ -23215,35 +23536,18 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method openPopup(content: String|HTMLElement, latlng: LatLng, options?: Popup options): this
 	  	// Creates a popup with the specified content and options and opens it in the given point on a map.
 	  	openPopup: function (popup, latlng, options) {
-	  		if (!(popup instanceof Popup)) {
-	  			popup = new Popup(options).setContent(popup);
-	  		}
+	  		this._initOverlay(Popup, popup, latlng, options)
+	  		  .openOn(this);
 
-	  		if (latlng) {
-	  			popup.setLatLng(latlng);
-	  		}
-
-	  		if (this.hasLayer(popup)) {
-	  			return this;
-	  		}
-
-	  		if (this._popup && this._popup.options.autoClose) {
-	  			this.closePopup();
-	  		}
-
-	  		this._popup = popup;
-	  		return this.addLayer(popup);
+	  		return this;
 	  	},
 
 	  	// @method closePopup(popup?: Popup): this
 	  	// Closes the popup previously opened with [openPopup](#map-openpopup) (or the given one).
 	  	closePopup: function (popup) {
-	  		if (!popup || popup === this._popup) {
-	  			popup = this._popup;
-	  			this._popup = null;
-	  		}
+	  		popup = arguments.length ? popup : this._popup;
 	  		if (popup) {
-	  			this.removeLayer(popup);
+	  			popup.close();
 	  		}
 	  		return this;
 	  	}
@@ -23272,18 +23576,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// necessary event listeners. If a `Function` is passed it will receive
 	  	// the layer as the first argument and should return a `String` or `HTMLElement`.
 	  	bindPopup: function (content, options) {
-
-	  		if (content instanceof Popup) {
-	  			setOptions(content, options);
-	  			this._popup = content;
-	  			content._source = this;
-	  		} else {
-	  			if (!this._popup || options) {
-	  				this._popup = new Popup(options, this);
-	  			}
-	  			this._popup.setContent(content);
-	  		}
-
+	  		this._popup = this._initOverlay(Popup, this._popup, content, options);
 	  		if (!this._popupHandlersAdded) {
 	  			this.on({
 	  				click: this._openPopup,
@@ -23315,14 +23608,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	// @method openPopup(latlng?: LatLng): this
 	  	// Opens the bound popup at the specified `latlng` or at the default popup anchor if no `latlng` is passed.
-	  	openPopup: function (layer, latlng) {
-	  		if (this._popup && this._map) {
-	  			latlng = this._popup._prepareOpen(this, layer, latlng);
-
-	  			// open the popup on the map
-	  			this._map.openPopup(this._popup, latlng);
+	  	openPopup: function (latlng) {
+	  		if (this._popup) {
+	  			if (!(this instanceof FeatureGroup)) {
+	  				this._popup._source = this;
+	  			}
+	  			if (this._popup._prepareOpen(latlng || this._latlng)) {
+	  				// open the popup on the map
+	  				this._popup.openOn(this._map);
+	  			}
 	  		}
-
 	  		return this;
 	  	},
 
@@ -23330,20 +23625,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// Closes the popup bound to this layer if it is open.
 	  	closePopup: function () {
 	  		if (this._popup) {
-	  			this._popup._close();
+	  			this._popup.close();
 	  		}
 	  		return this;
 	  	},
 
 	  	// @method togglePopup(): this
 	  	// Opens or closes the popup bound to this layer depending on its current state.
-	  	togglePopup: function (target) {
+	  	togglePopup: function () {
 	  		if (this._popup) {
-	  			if (this._popup._map) {
-	  				this.closePopup();
-	  			} else {
-	  				this.openPopup(target);
-	  			}
+	  			this._popup.toggle(this);
 	  		}
 	  		return this;
 	  	},
@@ -23370,33 +23661,25 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_openPopup: function (e) {
-	  		var layer = e.layer || e.target;
-
-	  		if (!this._popup) {
+	  		if (!this._popup || !this._map) {
 	  			return;
 	  		}
-
-	  		if (!this._map) {
-	  			return;
-	  		}
-
 	  		// prevent map click
 	  		stop(e);
 
-	  		// if this inherits from Path its a vector and we can just
-	  		// open the popup at the new location
-	  		if (layer instanceof Path) {
-	  			this.openPopup(e.layer || e.target, e.latlng);
+	  		var target = e.layer || e.target;
+	  		if (this._popup._source === target && !(target instanceof Path)) {
+	  			// treat it like a marker and figure out
+	  			// if we should toggle it open/closed
+	  			if (this._map.hasLayer(this._popup)) {
+	  				this.closePopup();
+	  			} else {
+	  				this.openPopup(e.latlng);
+	  			}
 	  			return;
 	  		}
-
-	  		// otherwise treat it like a marker and figure out
-	  		// if we should toggle it open/closed
-	  		if (this._map.hasLayer(this._popup) && this._popup._source === layer) {
-	  			this.closePopup();
-	  		} else {
-	  			this.openPopup(layer, e.latlng);
-	  		}
+	  		this._popup._source = target;
+	  		this.openPopup(e.latlng);
 	  	},
 
 	  	_movePopup: function (e) {
@@ -23417,10 +23700,28 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * Used to display small texts on top of map layers.
 	   *
 	   * @example
+	   * If you want to just bind a tooltip to marker:
 	   *
 	   * ```js
 	   * marker.bindTooltip("my tooltip text").openTooltip();
 	   * ```
+	   * Path overlays like polylines also have a `bindTooltip` method.
+	   *
+	   * A tooltip can be also standalone:
+	   *
+	   * ```js
+	   * var tooltip = L.tooltip()
+	   * 	.setLatLng(latlng)
+	   * 	.setContent('Hello world!<br />This is a nice tooltip.')
+	   * 	.addTo(map);
+	   * ```
+	   * or
+	   * ```js
+	   * var tooltip = L.tooltip(latlng, {content: 'Hello world!<br />This is a nice tooltip.'})
+	   * 	.addTo(map);
+	   * ```
+	   *
+	   *
 	   * Note about tooltip offset. Leaflet takes two options in consideration
 	   * for computing tooltip offsetting:
 	   * - the `offset` Tooltip option: it defaults to [0, 0], and it's specific to one tooltip.
@@ -23460,10 +23761,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// If true, the tooltip will follow the mouse instead of being fixed at the feature center.
 	  		sticky: false,
 
-	  		// @option interactive: Boolean = false
-	  		// If true, the tooltip will listen to the feature events.
-	  		interactive: false,
-
 	  		// @option opacity: Number = 0.9
 	  		// Tooltip container opacity.
 	  		opacity: 0.9
@@ -23480,6 +23777,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		map.fire('tooltipopen', {tooltip: this});
 
 	  		if (this._source) {
+	  			this.addEventParent(this._source);
+
 	  			// @namespace Layer
 	  			// @section Tooltip events
 	  			// @event tooltipopen: TooltipEvent
@@ -23498,6 +23797,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		map.fire('tooltipclose', {tooltip: this});
 
 	  		if (this._source) {
+	  			this.removeEventParent(this._source);
+
 	  			// @namespace Layer
 	  			// @section Tooltip events
 	  			// @event tooltipclose: TooltipEvent
@@ -23509,17 +23810,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	getEvents: function () {
 	  		var events = DivOverlay.prototype.getEvents.call(this);
 
-	  		if (touch && !this.options.permanent) {
-	  			events.preclick = this._close;
+	  		if (!this.options.permanent) {
+	  			events.preclick = this.close;
 	  		}
 
 	  		return events;
-	  	},
-
-	  	_close: function () {
-	  		if (this._map) {
-	  			this._map.closeTooltip(this);
-	  		}
 	  	},
 
 	  	_initLayout: function () {
@@ -23527,6 +23822,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		    className = prefix + ' ' + (this.options.className || '') + ' leaflet-zoom-' + (this._zoomAnimated ? 'animated' : 'hide');
 
 	  		this._contentNode = this._container = create$1('div', className);
+
+	  		this._container.setAttribute('role', 'tooltip');
+	  		this._container.setAttribute('id', 'leaflet-tooltip-' + stamp(this));
 	  	},
 
 	  	_updateLayout: function () {},
@@ -23607,7 +23905,10 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // @namespace Tooltip
 	  // @factory L.tooltip(options?: Tooltip options, source?: Layer)
-	  // Instantiates a Tooltip object given an optional `options` object that describes its appearance and location and an optional `source` object that is used to tag the tooltip with a reference to the Layer to which it refers.
+	  // Instantiates a `Tooltip` object given an optional `options` object that describes its appearance and location and an optional `source` object that is used to tag the tooltip with a reference to the Layer to which it refers.
+	  // @alternative
+	  // @factory L.tooltip(latlng: LatLng, options?: Tooltip options)
+	  // Instantiates a `Tooltip` object given `latlng` where the tooltip will open and an optional `options` object that describes its appearance and location.
 	  var tooltip = function (options, source) {
 	  	return new Tooltip(options, source);
 	  };
@@ -23622,27 +23923,16 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @method openTooltip(content: String|HTMLElement, latlng: LatLng, options?: Tooltip options): this
 	  	// Creates a tooltip with the specified content and options and open it.
 	  	openTooltip: function (tooltip, latlng, options) {
-	  		if (!(tooltip instanceof Tooltip)) {
-	  			tooltip = new Tooltip(options).setContent(tooltip);
-	  		}
+	  		this._initOverlay(Tooltip, tooltip, latlng, options)
+	  		  .openOn(this);
 
-	  		if (latlng) {
-	  			tooltip.setLatLng(latlng);
-	  		}
-
-	  		if (this.hasLayer(tooltip)) {
-	  			return this;
-	  		}
-
-	  		return this.addLayer(tooltip);
+	  		return this;
 	  	},
 
-	  	// @method closeTooltip(tooltip?: Tooltip): this
+	  	// @method closeTooltip(tooltip: Tooltip): this
 	  	// Closes the tooltip given as parameter.
 	  	closeTooltip: function (tooltip) {
-	  		if (tooltip) {
-	  			this.removeLayer(tooltip);
-	  		}
+	  		tooltip.close();
 	  		return this;
 	  	}
 
@@ -23670,18 +23960,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// the layer as the first argument and should return a `String` or `HTMLElement`.
 	  	bindTooltip: function (content, options) {
 
-	  		if (content instanceof Tooltip) {
-	  			setOptions(content, options);
-	  			this._tooltip = content;
-	  			content._source = this;
-	  		} else {
-	  			if (!this._tooltip || options) {
-	  				this._tooltip = new Tooltip(options, this);
-	  			}
-	  			this._tooltip.setContent(content);
-
+	  		if (this._tooltip && this.isTooltipOpen()) {
+	  			this.unbindTooltip();
 	  		}
 
+	  		this._tooltip = this._initOverlay(Tooltip, this._tooltip, content, options);
 	  		this._initTooltipInteractions();
 
 	  		if (this._tooltip.options.permanent && this._map && this._map.hasLayer(this)) {
@@ -23702,9 +23985,9 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this;
 	  	},
 
-	  	_initTooltipInteractions: function (remove$$1) {
-	  		if (!remove$$1 && this._tooltipHandlersAdded) { return; }
-	  		var onOff = remove$$1 ? 'off' : 'on',
+	  	_initTooltipInteractions: function (remove) {
+	  		if (!remove && this._tooltipHandlersAdded) { return; }
+	  		var onOff = remove ? 'off' : 'on',
 	  		    events = {
 	  			remove: this.closeTooltip,
 	  			move: this._moveTooltip
@@ -23712,36 +23995,40 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		if (!this._tooltip.options.permanent) {
 	  			events.mouseover = this._openTooltip;
 	  			events.mouseout = this.closeTooltip;
-	  			if (this._tooltip.options.sticky) {
-	  				events.mousemove = this._moveTooltip;
-	  			}
-	  			if (touch) {
-	  				events.click = this._openTooltip;
+	  			events.click = this._openTooltip;
+	  			if (this._map) {
+	  				this._addFocusListeners();
+	  			} else {
+	  				events.add = this._addFocusListeners;
 	  			}
 	  		} else {
 	  			events.add = this._openTooltip;
 	  		}
+	  		if (this._tooltip.options.sticky) {
+	  			events.mousemove = this._moveTooltip;
+	  		}
 	  		this[onOff](events);
-	  		this._tooltipHandlersAdded = !remove$$1;
+	  		this._tooltipHandlersAdded = !remove;
 	  	},
 
 	  	// @method openTooltip(latlng?: LatLng): this
 	  	// Opens the bound tooltip at the specified `latlng` or at the default tooltip anchor if no `latlng` is passed.
-	  	openTooltip: function (layer, latlng) {
-	  		if (this._tooltip && this._map) {
-	  			latlng = this._tooltip._prepareOpen(this, layer, latlng);
+	  	openTooltip: function (latlng) {
+	  		if (this._tooltip) {
+	  			if (!(this instanceof FeatureGroup)) {
+	  				this._tooltip._source = this;
+	  			}
+	  			if (this._tooltip._prepareOpen(latlng)) {
+	  				// open the tooltip on the map
+	  				this._tooltip.openOn(this._map);
 
-	  			// open the tooltip on the map
-	  			this._map.openTooltip(this._tooltip, latlng);
-
-	  			// Tooltip container may not be defined if not permanent and never
-	  			// opened.
-	  			if (this._tooltip.options.interactive && this._tooltip._container) {
-	  				addClass(this._tooltip._container, 'leaflet-clickable');
-	  				this.addInteractiveTarget(this._tooltip._container);
+	  				if (this.getElement) {
+	  					this._setAriaDescribedByOnLayer(this);
+	  				} else if (this.eachLayer) {
+	  					this.eachLayer(this._setAriaDescribedByOnLayer, this);
+	  				}
 	  			}
 	  		}
-
 	  		return this;
 	  	},
 
@@ -23749,24 +24036,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// Closes the tooltip bound to this layer if it is open.
 	  	closeTooltip: function () {
 	  		if (this._tooltip) {
-	  			this._tooltip._close();
-	  			if (this._tooltip.options.interactive && this._tooltip._container) {
-	  				removeClass(this._tooltip._container, 'leaflet-clickable');
-	  				this.removeInteractiveTarget(this._tooltip._container);
-	  			}
+	  			return this._tooltip.close();
 	  		}
-	  		return this;
 	  	},
 
 	  	// @method toggleTooltip(): this
 	  	// Opens or closes the tooltip bound to this layer depending on its current state.
-	  	toggleTooltip: function (target) {
+	  	toggleTooltip: function () {
 	  		if (this._tooltip) {
-	  			if (this._tooltip._map) {
-	  				this.closeTooltip();
-	  			} else {
-	  				this.openTooltip(target);
-	  			}
+	  			this._tooltip.toggle(this);
 	  		}
 	  		return this;
 	  	},
@@ -23792,13 +24070,52 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		return this._tooltip;
 	  	},
 
-	  	_openTooltip: function (e) {
-	  		var layer = e.layer || e.target;
+	  	_addFocusListeners: function () {
+	  		if (this.getElement) {
+	  			this._addFocusListenersOnLayer(this);
+	  		} else if (this.eachLayer) {
+	  			this.eachLayer(this._addFocusListenersOnLayer, this);
+	  		}
+	  	},
 
+	  	_addFocusListenersOnLayer: function (layer) {
+	  		var el = typeof layer.getElement === 'function' && layer.getElement();
+	  		if (el) {
+	  			on(el, 'focus', function () {
+	  				this._tooltip._source = layer;
+	  				this.openTooltip();
+	  			}, this);
+	  			on(el, 'blur', this.closeTooltip, this);
+	  		}
+	  	},
+
+	  	_setAriaDescribedByOnLayer: function (layer) {
+	  		var el = typeof layer.getElement === 'function' && layer.getElement();
+	  		if (el) {
+	  			el.setAttribute('aria-describedby', this._tooltip._container.id);
+	  		}
+	  	},
+
+
+	  	_openTooltip: function (e) {
 	  		if (!this._tooltip || !this._map) {
 	  			return;
 	  		}
-	  		this.openTooltip(layer, this._tooltip.options.sticky ? e.latlng : undefined);
+
+	  		// If the map is moving, we will show the tooltip after it's done.
+	  		if (this._map.dragging && this._map.dragging.moving() && !this._openOnceFlag) {
+	  			this._openOnceFlag = true;
+	  			var that = this;
+	  			this._map.once('moveend', function () {
+	  				that._openOnceFlag = false;
+	  				that._openTooltip(e);
+	  			});
+	  			return;
+	  		}
+
+	  		this._tooltip._source = e.layer || e.target;
+
+	  		this.openTooltip(this._tooltip.options.sticky ? e.latlng : undefined);
 	  	},
 
 	  	_moveTooltip: function (e) {
@@ -23969,7 +24286,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// `true` by default on mobile browsers, in order to avoid too many requests and keep smooth navigation.
 	  		// `false` otherwise in order to display new tiles _during_ panning, since it is easy to pan outside the
 	  		// [`keepBuffer`](#gridlayer-keepbuffer) option in desktop browsers.
-	  		updateWhenIdle: mobile,
+	  		updateWhenIdle: Browser.mobile,
 
 	  		// @option updateWhenZooming: Boolean = true
 	  		// By default, a smooth zoom animation (during a [touch zoom](#map-touchzoom) or a [`flyTo()`](#map-flyto)) will update grid layers every integer zoom level. Setting this option to `false` will update the grid layer only when the smooth animation ends.
@@ -24038,8 +24355,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		this._levels = {};
 	  		this._tiles = {};
 
-	  		this._resetView();
-	  		this._update();
+	  		this._resetView(); // implicit _update() call
 	  	},
 
 	  	beforeAdd: function (map) {
@@ -24108,6 +24424,11 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	redraw: function () {
 	  		if (this._map) {
 	  			this._removeAllTiles();
+	  			var tileZoom = this._clampZoom(this._map.getZoom());
+	  			if (tileZoom !== this._tileZoom) {
+	  				this._tileZoom = tileZoom;
+	  				this._updateLevels();
+	  			}
 	  			this._update();
 	  		}
 	  		return this;
@@ -24186,7 +24507,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		if (!this._map) { return; }
 
 	  		// IE doesn't inherit filter opacity properly, so we're forced to set it on tiles
-	  		if (ielt9) { return; }
+	  		if (Browser.ielt9) { return; }
 
 	  		setOpacity(this._container, this.options.opacity);
 
@@ -24472,7 +24793,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		    translate = level.origin.multiplyBy(scale)
 	  		        .subtract(this._map._getNewPixelOrigin(center, zoom)).round();
 
-	  		if (any3d) {
+	  		if (Browser.any3d) {
 	  			setTransform(level.el, translate, scale);
 	  		} else {
 	  			setPosition(level.el, translate);
@@ -24673,14 +24994,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		tile.onmousemove = falseFn;
 
 	  		// update opacity on tiles in IE7-8 because of filter inheritance problems
-	  		if (ielt9 && this.options.opacity < 1) {
+	  		if (Browser.ielt9 && this.options.opacity < 1) {
 	  			setOpacity(tile, this.options.opacity);
-	  		}
-
-	  		// without this hack, tiles disappear after zoom on Chrome for Android
-	  		// https://github.com/Leaflet/Leaflet/issues/2078
-	  		if (android && !android23) {
-	  			tile.style.WebkitBackfaceVisibility = 'hidden';
 	  		}
 	  	},
 
@@ -24760,7 +25075,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			// Fired when the grid layer loaded all visible tiles.
 	  			this.fire('load');
 
-	  			if (ielt9 || !this._map._fadeAnimated) {
+	  			if (Browser.ielt9 || !this._map._fadeAnimated) {
 	  				requestAnimFrame(this._pruneTiles, this);
 	  			} else {
 	  				// Wait a bit more than 0.2 secs (the duration of the tile fade-in)
@@ -24812,7 +25127,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * @example
 	   *
 	   * ```js
-	   * L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png?{foo}', {foo: 'bar', attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'}).addTo(map);
+	   * L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png?{foo}', {foo: 'bar', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
 	   * ```
 	   *
 	   * @section URL template
@@ -24821,7 +25136,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * A string of the following form:
 	   *
 	   * ```
-	   * 'http://{s}.somedomain.com/blabla/{z}/{x}/{y}{r}.png'
+	   * 'https://{s}.somedomain.com/blabla/{z}/{x}/{y}{r}.png'
 	   * ```
 	   *
 	   * `{s}` means one of the available subdomains (used sequentially to help with browser parallel requests per domain limitation; subdomain values are specified in options; `a`, `b` or `c` by default, can be omitted), `{z}` — zoom level, `{x}` and `{y}` — tile coordinates. `{r}` can be used to add "&commat;2x" to the URL to load retina tiles.
@@ -24829,7 +25144,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * You can use custom keys in the template, which will be [evaluated](#util-template) from TileLayer options, like this:
 	   *
 	   * ```
-	   * L.tileLayer('http://{s}.somedomain.com/{foo}/{z}/{x}/{y}.png', {foo: 'bar'});
+	   * L.tileLayer('https://{s}.somedomain.com/{foo}/{z}/{x}/{y}.png', {foo: 'bar'});
 	   * ```
 	   */
 
@@ -24875,7 +25190,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// Whether the crossOrigin attribute will be added to the tiles.
 	  		// If a String is provided, all tiles will have their crossOrigin attribute set to the String provided. This is needed if you want to access tile pixel data.
 	  		// Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
-	  		crossOrigin: false
+	  		crossOrigin: false,
+
+	  		// @option referrerPolicy: Boolean|String = false
+	  		// Whether the referrerPolicy attribute will be added to the tiles.
+	  		// If a String is provided, all tiles will have their referrerPolicy attribute set to the String provided.
+	  		// This may be needed if your map's rendering context has a strict default but your tile provider expects a valid referrer
+	  		// (e.g. to validate an API token).
+	  		// Refer to [HTMLImageElement.referrerPolicy](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/referrerPolicy) for valid String values.
+	  		referrerPolicy: false
 	  	},
 
 	  	initialize: function (url, options) {
@@ -24885,29 +25208,32 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		options = setOptions(this, options);
 
 	  		// detecting retina displays, adjusting tileSize and zoom levels
-	  		if (options.detectRetina && retina && options.maxZoom > 0) {
+	  		if (options.detectRetina && Browser.retina && options.maxZoom > 0) {
 
 	  			options.tileSize = Math.floor(options.tileSize / 2);
 
 	  			if (!options.zoomReverse) {
 	  				options.zoomOffset++;
-	  				options.maxZoom--;
+	  				options.maxZoom = Math.max(options.minZoom, options.maxZoom - 1);
 	  			} else {
 	  				options.zoomOffset--;
-	  				options.minZoom++;
+	  				options.minZoom = Math.min(options.maxZoom, options.minZoom + 1);
 	  			}
 
 	  			options.minZoom = Math.max(0, options.minZoom);
+	  		} else if (!options.zoomReverse) {
+	  			// make sure maxZoom is gte minZoom
+	  			options.maxZoom = Math.max(options.minZoom, options.maxZoom);
+	  		} else {
+	  			// make sure minZoom is lte maxZoom
+	  			options.minZoom = Math.min(options.maxZoom, options.minZoom);
 	  		}
 
 	  		if (typeof options.subdomains === 'string') {
 	  			options.subdomains = options.subdomains.split('');
 	  		}
 
-	  		// for https://github.com/Leaflet/Leaflet/issues/137
-	  		if (!android) {
-	  			this.on('tileunload', this._onTileRemove);
-	  		}
+	  		this.on('tileunload', this._onTileRemove);
 	  	},
 
 	  	// @method setUrl(url: String, noRedraw?: Boolean): this
@@ -24941,17 +25267,17 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
 	  		}
 
-	  		/*
-	  		 Alt tag is set to empty string to keep screen readers from reading URL and for compliance reasons
-	  		 http://www.w3.org/TR/WCAG20-TECHS/H67
-	  		*/
-	  		tile.alt = '';
+	  		// for this new option we follow the documented behavior
+	  		// more closely by only setting the property when string
+	  		if (typeof this.options.referrerPolicy === 'string') {
+	  			tile.referrerPolicy = this.options.referrerPolicy;
+	  		}
 
-	  		/*
-	  		 Set role="presentation" to force screen readers to ignore this
-	  		 https://www.w3.org/TR/wai-aria/roles#textalternativecomputation
-	  		*/
-	  		tile.setAttribute('role', 'presentation');
+	  		// The alt attribute is set to the empty string,
+	  		// allowing screen readers to ignore the decorative image tiles.
+	  		// https://www.w3.org/WAI/tutorials/images/decorative/
+	  		// https://www.w3.org/TR/html-aria/#el-img-empty-alt
+	  		tile.alt = '';
 
 	  		tile.src = this.getTileUrl(coords);
 
@@ -24966,7 +25292,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// Classes extending `TileLayer` can override this function to provide custom tile URL naming schemes.
 	  	getTileUrl: function (coords) {
 	  		var data = {
-	  			r: retina ? '@2x' : '',
+	  			r: Browser.retina ? '@2x' : '',
 	  			s: this._getSubdomain(coords),
 	  			x: coords.x,
 	  			y: coords.y,
@@ -24985,7 +25311,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	_tileOnLoad: function (done, tile) {
 	  		// For https://github.com/Leaflet/Leaflet/issues/3332
-	  		if (ielt9) {
+	  		if (Browser.ielt9) {
 	  			setTimeout(bind(done, this, null, tile), 0);
 	  		} else {
 	  			done(null, tile);
@@ -25034,8 +25360,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  				if (!tile.complete) {
 	  					tile.src = emptyImageUrl;
+	  					var coords = this._tiles[i].coords;
 	  					remove(tile);
 	  					delete this._tiles[i];
+	  					// @event tileabort: TileEvent
+	  					// Fired when a tile was loading but is now not wanted.
+	  					this.fire('tileabort', {
+	  						tile: tile,
+	  						coords: coords
+	  					});
 	  				}
 	  			}
 	  		}
@@ -25046,11 +25379,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		if (!tile) { return; }
 
 	  		// Cancels any pending http requests associated with the tile
-	  		// unless we're on Android's stock browser,
-	  		// see https://github.com/Leaflet/Leaflet/issues/137
-	  		if (!androidStock) {
-	  			tile.el.setAttribute('src', emptyImageUrl);
-	  		}
+	  		tile.el.setAttribute('src', emptyImageUrl);
 
 	  		return GridLayer.prototype._removeTile.call(this, key);
 	  	},
@@ -25096,7 +25425,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// @aka TileLayer.WMS options
 	  	// If any custom options not documented here are used, they will be sent to the
 	  	// WMS server as extra parameters in each request URL. This can be useful for
-	  	// [non-standard vendor WMS parameters](http://docs.geoserver.org/stable/en/user/services/wms/vendor.html).
+	  	// [non-standard vendor WMS parameters](https://docs.geoserver.org/stable/en/user/services/wms/vendor.html).
 	  	defaultWmsParams: {
 	  		service: 'WMS',
 	  		request: 'GetMap',
@@ -25148,7 +25477,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		options = setOptions(this, options);
 
-	  		var realRetina = options.detectRetina && retina ? 2 : 1;
+	  		var realRetina = options.detectRetina && Browser.retina ? 2 : 1;
 	  		var tileSize = this.getTileSize();
 	  		wmsParams.width = tileSize.x * realRetina;
 	  		wmsParams.height = tileSize.y * realRetina;
@@ -25235,11 +25564,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// @option padding: Number = 0.1
 	  		// How much to extend the clip area around the map view (relative to its size)
 	  		// e.g. 0.1 would be 10% of map view in each direction
-	  		padding: 0.1,
-
-	  		// @option tolerance: Number = 0
-	  		// How much to extend click tolerance round a path/object on the map
-	  		tolerance : 0
+	  		padding: 0.1
 	  	},
 
 	  	initialize: function (options) {
@@ -25252,9 +25577,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		if (!this._container) {
 	  			this._initContainer(); // defined by renderer implementations
 
-	  			if (this._zoomAnimated) {
-	  				addClass(this._container, 'leaflet-zoom-animated');
-	  			}
+	  			// always keep transform-origin as 0 0
+	  			addClass(this._container, 'leaflet-zoom-animated');
 	  		}
 
 	  		this.getPane().appendChild(this._container);
@@ -25290,15 +25614,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  	_updateTransform: function (center, zoom) {
 	  		var scale = this._map.getZoomScale(zoom, this._zoom),
-	  		    position = getPosition(this._container),
 	  		    viewHalf = this._map.getSize().multiplyBy(0.5 + this.options.padding),
 	  		    currentCenterPoint = this._map.project(this._center, zoom),
-	  		    destCenterPoint = this._map.project(center, zoom),
-	  		    centerOffset = destCenterPoint.subtract(currentCenterPoint),
 
-	  		    topLeftOffset = viewHalf.multiplyBy(-scale).add(position).add(viewHalf).subtract(centerOffset);
+	  		    topLeftOffset = viewHalf.multiplyBy(-scale).add(currentCenterPoint)
+	  				  .subtract(this._map._getNewPixelOrigin(center, zoom));
 
-	  		if (any3d) {
+	  		if (Browser.any3d) {
 	  			setTransform(this._container, topLeftOffset, scale);
 	  		} else {
 	  			setPosition(this._container, topLeftOffset);
@@ -25348,7 +25670,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * Allows vector layers to be displayed with [`<canvas>`](https://developer.mozilla.org/docs/Web/API/Canvas_API).
 	   * Inherits `Renderer`.
 	   *
-	   * Due to [technical limitations](http://caniuse.com/#search=canvas), Canvas is not
+	   * Due to [technical limitations](https://caniuse.com/canvas), Canvas is not
 	   * available in all web browsers, notably IE8, and overlapping geometries might
 	   * not display properly in some edge cases.
 	   *
@@ -25373,6 +25695,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   */
 
 	  var Canvas = Renderer.extend({
+
+	  	// @section
+	  	// @aka Canvas options
+	  	options: {
+	  		// @option tolerance: Number = 0
+	  		// How much to extend the click tolerance around a path/object on the map.
+	  		tolerance: 0
+	  	},
+
 	  	getEvents: function () {
 	  		var events = Renderer.prototype.getEvents.call(this);
 	  		events.viewprereset = this._onViewPreReset;
@@ -25398,6 +25729,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		on(container, 'mousemove', this._onMouseMove, this);
 	  		on(container, 'click dblclick mousedown mouseup contextmenu', this._onClick, this);
 	  		on(container, 'mouseout', this._handleMouseOut, this);
+	  		container['_leaflet_disable_events'] = true;
 
 	  		this._ctx = container.getContext('2d');
 	  	},
@@ -25430,7 +25762,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		var b = this._bounds,
 	  		    container = this._container,
 	  		    size = b.getSize(),
-	  		    m = retina ? 2 : 1;
+	  		    m = Browser.retina ? 2 : 1;
 
 	  		setPosition(container, b.min);
 
@@ -25440,7 +25772,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		container.style.width = size.x + 'px';
 	  		container.style.height = size.y + 'px';
 
-	  		if (retina) {
+	  		if (Browser.retina) {
 	  			this._ctx.scale(2, 2);
 	  		}
 
@@ -25684,15 +26016,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		for (var order = this._drawFirst; order; order = order.next) {
 	  			layer = order.layer;
 	  			if (layer.options.interactive && layer._containsPoint(point)) {
-	  				if (!(e.type === 'click' || e.type !== 'preclick') || !this._map._draggableMoved(layer)) {
+	  				if (!(e.type === 'click' || e.type === 'preclick') || !this._map._draggableMoved(layer)) {
 	  					clickedLayer = layer;
 	  				}
 	  			}
 	  		}
-	  		if (clickedLayer)  {
-	  			fakeStop(e);
-	  			this._fireEvent([clickedLayer], e);
-	  		}
+	  		this._fireEvent(clickedLayer ? [clickedLayer] : false, e);
 	  	},
 
 	  	_onMouseMove: function (e) {
@@ -25738,9 +26067,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			}
 	  		}
 
-	  		if (this._hoveredLayer) {
-	  			this._fireEvent([this._hoveredLayer], e);
-	  		}
+	  		this._fireEvent(this._hoveredLayer ? [this._hoveredLayer] : false, e);
 
 	  		this._mouseHoverThrottled = true;
 	  		setTimeout(bind(function () {
@@ -25817,8 +26144,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  // @factory L.canvas(options?: Renderer options)
 	  // Creates a Canvas renderer with the given options.
-	  function canvas$1(options) {
-	  	return canvas ? new Canvas(options) : null;
+	  function canvas(options) {
+	  	return Browser.canvas ? new Canvas(options) : null;
 	  }
 
 	  /*
@@ -25833,10 +26160,12 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  			return document.createElement('<lvml:' + name + ' class="lvml">');
 	  		};
 	  	} catch (e) {
-	  		return function (name) {
-	  			return document.createElement('<' + name + ' xmlns="urn:schemas-microsoft.com:vml" class="lvml">');
-	  		};
+	  		// Do not return fn from catch block so `e` can be garbage collected
+	  		// See https://github.com/Leaflet/Leaflet/pull/7279
 	  	}
+	  	return function (name) {
+	  		return document.createElement('<' + name + ' xmlns="urn:schemas-microsoft.com:vml" class="lvml">');
+	  	};
 	  })();
 
 
@@ -25960,7 +26289,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	}
 	  };
 
-	  var create$2 = vml ? vmlCreate : svgCreate;
+	  var create = Browser.vml ? vmlCreate : svgCreate;
 
 	  /*
 	   * @class SVG
@@ -25970,7 +26299,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	   * Allows vector layers to be displayed with [SVG](https://developer.mozilla.org/docs/Web/SVG).
 	   * Inherits `Renderer`.
 	   *
-	   * Due to [technical limitations](http://caniuse.com/#search=svg), SVG is not
+	   * Due to [technical limitations](https://caniuse.com/svg), SVG is not
 	   * available in all web browsers, notably Android 2.x and 3.x.
 	   *
 	   * Although SVG is not available on IE7 and IE8, these browsers support
@@ -26000,19 +26329,13 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  var SVG = Renderer.extend({
 
-	  	getEvents: function () {
-	  		var events = Renderer.prototype.getEvents.call(this);
-	  		events.zoomstart = this._onZoomStart;
-	  		return events;
-	  	},
-
 	  	_initContainer: function () {
-	  		this._container = create$2('svg');
+	  		this._container = create('svg');
 
 	  		// makes it possible to click through svg root; we'll reset it back in individual paths
 	  		this._container.setAttribute('pointer-events', 'none');
 
-	  		this._rootGroup = create$2('g');
+	  		this._rootGroup = create('g');
 	  		this._container.appendChild(this._rootGroup);
 	  	},
 
@@ -26022,13 +26345,6 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		delete this._container;
 	  		delete this._rootGroup;
 	  		delete this._svgSize;
-	  	},
-
-	  	_onZoomStart: function () {
-	  		// Drag-then-pinch interactions might mess up the center and zoom.
-	  		// In this case, the easiest way to prevent this is re-do the renderer
-	  		//   bounds and padding when the zooming starts.
-	  		this._update();
 	  	},
 
 	  	_update: function () {
@@ -26057,7 +26373,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// methods below are called by vector layers implementations
 
 	  	_initPath: function (layer) {
-	  		var path = layer._path = create$2('path');
+	  		var path = layer._path = create('path');
 
 	  		// @namespace Path
 	  		// @option className: String = null
@@ -26161,15 +26477,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	}
 	  });
 
-	  if (vml) {
+	  if (Browser.vml) {
 	  	SVG.include(vmlMixin);
 	  }
 
 	  // @namespace SVG
 	  // @factory L.svg(options?: Renderer options)
 	  // Creates a SVG renderer with the given options.
-	  function svg$1(options) {
-	  	return svg || vml ? new SVG(options) : null;
+	  function svg(options) {
+	  	return Browser.svg || Browser.vml ? new SVG(options) : null;
 	  }
 
 	  Map.include({
@@ -26210,7 +26526,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		// @namespace Map; @option preferCanvas: Boolean = false
 	  		// Whether `Path`s should be rendered on a `Canvas` renderer.
 	  		// By default, all `Path`s are rendered in a `SVG` renderer.
-	  		return (this.options.preferCanvas && canvas$1(options)) || svg$1(options);
+	  		return (this.options.preferCanvas && canvas(options)) || svg(options);
 	  	}
 	  });
 
@@ -26269,7 +26585,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	return new Rectangle(latLngBounds, options);
 	  }
 
-	  SVG.create = create$2;
+	  SVG.create = create;
 	  SVG.pointsToPath = pointsToPath;
 
 	  GeoJSON.geometryToLayer = geometryToLayer;
@@ -26414,6 +26730,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	_onKeyDown: function (e) {
 	  		if (e.keyCode === 27) {
 	  			this._finish();
+	  			this._clearDeferredResetState();
+	  			this._resetState();
 	  		}
 	  	}
 	  });
@@ -26484,7 +26802,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  // @section Interaction Options
 	  Map.mergeOptions({
 	  	// @option dragging: Boolean = true
-	  	// Whether the map be draggable with mouse/touch or not.
+	  	// Whether the map is draggable with mouse/touch or not.
 	  	dragging: true,
 
 	  	// @section Panning Inertia Options
@@ -26492,8 +26810,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// If enabled, panning of the map will have an inertia effect where
 	  	// the map builds momentum while dragging and continues moving in
 	  	// the same direction for some time. Feels especially nice on touch
-	  	// devices. Enabled by default unless running on old Android devices.
-	  	inertia: !android23,
+	  	// devices. Enabled by default.
+	  	inertia: true,
 
 	  	// @option inertiaDeceleration: Number = 3000
 	  	// The rate with which the inertial movement slows down, in pixels/second².
@@ -26657,7 +26975,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		var map = this._map,
 	  		    options = map.options,
 
-	  		    noInertia = !options.inertia || this._times.length < 2;
+	  		    noInertia = !options.inertia || e.noInertia || this._times.length < 2;
 
 	  		map.fire('dragend', e);
 
@@ -26851,10 +27169,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  					offset = toPoint(offset).multiplyBy(3);
 	  				}
 
-	  				map.panBy(offset);
-
 	  				if (map.options.maxBounds) {
-	  					map.panInsideBounds(map.options.maxBounds);
+	  					offset = map._limitOffset(toPoint(offset), map.options.maxBounds);
+	  				}
+
+	  				if (map.options.worldCopyJump) {
+	  					var newLatLng = map.wrapLatLng(map.unproject(map.project(map.getCenter()).add(offset)));
+	  					map.panTo(newLatLng);
+	  				} else {
+	  					map.panBy(offset);
 	  				}
 	  			}
 	  		} else if (key in this._zoomKeys) {
@@ -26965,17 +27288,19 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  Map.addInitHook('addHandler', 'scrollWheelZoom', ScrollWheelZoom);
 
 	  /*
-	   * L.Map.Tap is used to enable mobile hacks like quick taps and long hold.
+	   * L.Map.TapHold is used to simulate `contextmenu` event on long hold,
+	   * which otherwise is not fired by mobile Safari.
 	   */
+
+	  var tapHoldDelay = 600;
 
 	  // @namespace Map
 	  // @section Interaction Options
 	  Map.mergeOptions({
 	  	// @section Touch interaction options
-	  	// @option tap: Boolean = true
-	  	// Enables mobile hacks for supporting instant taps (fixing 200ms click
-	  	// delay on iOS/Android) and touch holds (fired as `contextmenu` events).
-	  	tap: true,
+	  	// @option tapHold: Boolean
+	  	// Enables simulation of `contextmenu` event, default is `true` for mobile Safari.
+	  	tapHold: Browser.touchNative && Browser.safari && Browser.mobile,
 
 	  	// @option tapTolerance: Number = 15
 	  	// The max number of pixels a user can shift his finger during touch
@@ -26983,7 +27308,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	tapTolerance: 15
 	  });
 
-	  var Tap = Handler.extend({
+	  var TapHold = Handler.extend({
 	  	addHooks: function () {
 	  		on(this._map._container, 'touchstart', this._onDown, this);
 	  	},
@@ -26993,104 +27318,70 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	},
 
 	  	_onDown: function (e) {
-	  		if (!e.touches) { return; }
+	  		clearTimeout(this._holdTimeout);
+	  		if (e.touches.length !== 1) { return; }
 
-	  		preventDefault(e);
-
-	  		this._fireClick = true;
-
-	  		// don't simulate click or track longpress if more than 1 touch
-	  		if (e.touches.length > 1) {
-	  			this._fireClick = false;
-	  			clearTimeout(this._holdTimeout);
-	  			return;
-	  		}
-
-	  		var first = e.touches[0],
-	  		    el = first.target;
-
+	  		var first = e.touches[0];
 	  		this._startPos = this._newPos = new Point(first.clientX, first.clientY);
 
-	  		// if touching a link, highlight it
-	  		if (el.tagName && el.tagName.toLowerCase() === 'a') {
-	  			addClass(el, 'leaflet-active');
-	  		}
-
-	  		// simulate long hold but setting a timeout
 	  		this._holdTimeout = setTimeout(bind(function () {
-	  			if (this._isTapValid()) {
-	  				this._fireClick = false;
-	  				this._onUp();
-	  				this._simulateEvent('contextmenu', first);
-	  			}
-	  		}, this), 1000);
+	  			this._cancel();
+	  			if (!this._isTapValid()) { return; }
 
-	  		this._simulateEvent('mousedown', first);
+	  			// prevent simulated mouse events https://w3c.github.io/touch-events/#mouse-events
+	  			on(document, 'touchend', preventDefault);
+	  			on(document, 'touchend touchcancel', this._cancelClickPrevent);
+	  			this._simulateEvent('contextmenu', first);
+	  		}, this), tapHoldDelay);
 
-	  		on(document, {
-	  			touchmove: this._onMove,
-	  			touchend: this._onUp
-	  		}, this);
+	  		on(document, 'touchend touchcancel contextmenu', this._cancel, this);
+	  		on(document, 'touchmove', this._onMove, this);
 	  	},
 
-	  	_onUp: function (e) {
+	  	_cancelClickPrevent: function cancelClickPrevent() {
+	  		off(document, 'touchend', preventDefault);
+	  		off(document, 'touchend touchcancel', cancelClickPrevent);
+	  	},
+
+	  	_cancel: function () {
 	  		clearTimeout(this._holdTimeout);
+	  		off(document, 'touchend touchcancel contextmenu', this._cancel, this);
+	  		off(document, 'touchmove', this._onMove, this);
+	  	},
 
-	  		off(document, {
-	  			touchmove: this._onMove,
-	  			touchend: this._onUp
-	  		}, this);
-
-	  		if (this._fireClick && e && e.changedTouches) {
-
-	  			var first = e.changedTouches[0],
-	  			    el = first.target;
-
-	  			if (el && el.tagName && el.tagName.toLowerCase() === 'a') {
-	  				removeClass(el, 'leaflet-active');
-	  			}
-
-	  			this._simulateEvent('mouseup', first);
-
-	  			// simulate click if the touch didn't move too much
-	  			if (this._isTapValid()) {
-	  				this._simulateEvent('click', first);
-	  			}
-	  		}
+	  	_onMove: function (e) {
+	  		var first = e.touches[0];
+	  		this._newPos = new Point(first.clientX, first.clientY);
 	  	},
 
 	  	_isTapValid: function () {
 	  		return this._newPos.distanceTo(this._startPos) <= this._map.options.tapTolerance;
 	  	},
 
-	  	_onMove: function (e) {
-	  		var first = e.touches[0];
-	  		this._newPos = new Point(first.clientX, first.clientY);
-	  		this._simulateEvent('mousemove', first);
-	  	},
-
 	  	_simulateEvent: function (type, e) {
-	  		var simulatedEvent = document.createEvent('MouseEvents');
+	  		var simulatedEvent = new MouseEvent(type, {
+	  			bubbles: true,
+	  			cancelable: true,
+	  			view: window,
+	  			// detail: 1,
+	  			screenX: e.screenX,
+	  			screenY: e.screenY,
+	  			clientX: e.clientX,
+	  			clientY: e.clientY,
+	  			// button: 2,
+	  			// buttons: 2
+	  		});
 
 	  		simulatedEvent._simulated = true;
-	  		e.target._simulatedClick = true;
-
-	  		simulatedEvent.initMouseEvent(
-	  		        type, true, true, window, 1,
-	  		        e.screenX, e.screenY,
-	  		        e.clientX, e.clientY,
-	  		        false, false, false, false, 0, null);
 
 	  		e.target.dispatchEvent(simulatedEvent);
 	  	}
 	  });
 
 	  // @section Handlers
-	  // @property tap: Handler
-	  // Mobile touch hacks (quick tap and touch hold) handler.
-	  if (touch && (!pointer || safari)) {
-	  	Map.addInitHook('addHandler', 'tap', Tap);
-	  }
+	  // @property tapHold: Handler
+	  // Long tap handler to simulate `contextmenu` event (useful in mobile Safari).
+	  Map.addInitHook('addHandler', 'tapHold', TapHold);
 
 	  /*
 	   * L.Handler.TouchZoom is used by L.Map to add pinch zoom on supported mobile browsers.
@@ -27104,8 +27395,8 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  	// Whether the map can be zoomed by touch-dragging with two fingers. If
 	  	// passed `'center'`, it will zoom to the center of the view regardless of
 	  	// where the touch events (fingers) were. Enabled for touch-capable web
-	  	// browsers except for old Androids.
-	  	touchZoom: touch && !android23,
+	  	// browsers.
+	  	touchZoom: Browser.touch,
 
 	  	// @option bounceAtZoomLimits: Boolean = true
 	  	// Set it to false if you don't want the map to zoom beyond min/max zoom
@@ -27146,7 +27437,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		map._stop();
 
 	  		on(document, 'touchmove', this._onTouchMove, this);
-	  		on(document, 'touchend', this._onTouchEnd, this);
+	  		on(document, 'touchend touchcancel', this._onTouchEnd, this);
 
 	  		preventDefault(e);
 	  	},
@@ -27184,7 +27475,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 
 	  		cancelAnimFrame(this._animRequest);
 
-	  		var moveFn = bind(map._move, map, this._center, this._zoom, {pinch: true, round: false});
+	  		var moveFn = bind(map._move, map, this._center, this._zoom, {pinch: true, round: false}, undefined);
 	  		this._animRequest = requestAnimFrame(moveFn, this, true);
 
 	  		preventDefault(e);
@@ -27200,7 +27491,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  		cancelAnimFrame(this._animRequest);
 
 	  		off(document, 'touchmove', this._onTouchMove, this);
-	  		off(document, 'touchend', this._onTouchEnd, this);
+	  		off(document, 'touchend touchcancel', this._onTouchEnd, this);
 
 	  		// Pinch updates GridLayers' levels only when zoomSnap is off, so zoomSnap becomes noUpdate.
 	  		if (this._map.options.zoomAnimation) {
@@ -27221,98 +27512,97 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	  Map.Drag = Drag;
 	  Map.Keyboard = Keyboard;
 	  Map.ScrollWheelZoom = ScrollWheelZoom;
-	  Map.Tap = Tap;
+	  Map.TapHold = TapHold;
 	  Map.TouchZoom = TouchZoom;
 
-	  exports.version = version;
-	  exports.Control = Control;
-	  exports.control = control;
+	  exports.Bounds = Bounds;
 	  exports.Browser = Browser;
-	  exports.Evented = Evented;
-	  exports.Mixin = Mixin;
-	  exports.Util = Util;
+	  exports.CRS = CRS;
+	  exports.Canvas = Canvas;
+	  exports.Circle = Circle;
+	  exports.CircleMarker = CircleMarker;
 	  exports.Class = Class;
-	  exports.Handler = Handler;
-	  exports.extend = extend;
-	  exports.bind = bind;
-	  exports.stamp = stamp;
-	  exports.setOptions = setOptions;
+	  exports.Control = Control;
+	  exports.DivIcon = DivIcon;
+	  exports.DivOverlay = DivOverlay;
 	  exports.DomEvent = DomEvent;
 	  exports.DomUtil = DomUtil;
-	  exports.PosAnimation = PosAnimation;
 	  exports.Draggable = Draggable;
-	  exports.LineUtil = LineUtil;
-	  exports.PolyUtil = PolyUtil;
-	  exports.Point = Point;
-	  exports.point = toPoint;
-	  exports.Bounds = Bounds;
-	  exports.bounds = toBounds;
-	  exports.Transformation = Transformation;
-	  exports.transformation = toTransformation;
-	  exports.Projection = index;
-	  exports.LatLng = LatLng;
-	  exports.latLng = toLatLng;
-	  exports.LatLngBounds = LatLngBounds;
-	  exports.latLngBounds = toLatLngBounds;
-	  exports.CRS = CRS;
+	  exports.Evented = Evented;
+	  exports.FeatureGroup = FeatureGroup;
 	  exports.GeoJSON = GeoJSON;
-	  exports.geoJSON = geoJSON;
-	  exports.geoJson = geoJson;
+	  exports.GridLayer = GridLayer;
+	  exports.Handler = Handler;
+	  exports.Icon = Icon;
+	  exports.ImageOverlay = ImageOverlay;
+	  exports.LatLng = LatLng;
+	  exports.LatLngBounds = LatLngBounds;
 	  exports.Layer = Layer;
 	  exports.LayerGroup = LayerGroup;
-	  exports.layerGroup = layerGroup;
-	  exports.FeatureGroup = FeatureGroup;
-	  exports.featureGroup = featureGroup;
-	  exports.ImageOverlay = ImageOverlay;
-	  exports.imageOverlay = imageOverlay;
-	  exports.VideoOverlay = VideoOverlay;
-	  exports.videoOverlay = videoOverlay;
-	  exports.SVGOverlay = SVGOverlay;
-	  exports.svgOverlay = svgOverlay;
-	  exports.DivOverlay = DivOverlay;
-	  exports.Popup = Popup;
-	  exports.popup = popup;
-	  exports.Tooltip = Tooltip;
-	  exports.tooltip = tooltip;
-	  exports.Icon = Icon;
-	  exports.icon = icon;
-	  exports.DivIcon = DivIcon;
-	  exports.divIcon = divIcon;
-	  exports.Marker = Marker;
-	  exports.marker = marker;
-	  exports.TileLayer = TileLayer;
-	  exports.tileLayer = tileLayer;
-	  exports.GridLayer = GridLayer;
-	  exports.gridLayer = gridLayer;
-	  exports.SVG = SVG;
-	  exports.svg = svg$1;
-	  exports.Renderer = Renderer;
-	  exports.Canvas = Canvas;
-	  exports.canvas = canvas$1;
-	  exports.Path = Path;
-	  exports.CircleMarker = CircleMarker;
-	  exports.circleMarker = circleMarker;
-	  exports.Circle = Circle;
-	  exports.circle = circle;
-	  exports.Polyline = Polyline;
-	  exports.polyline = polyline;
-	  exports.Polygon = Polygon;
-	  exports.polygon = polygon;
-	  exports.Rectangle = Rectangle;
-	  exports.rectangle = rectangle;
+	  exports.LineUtil = LineUtil;
 	  exports.Map = Map;
+	  exports.Marker = Marker;
+	  exports.Mixin = Mixin;
+	  exports.Path = Path;
+	  exports.Point = Point;
+	  exports.PolyUtil = PolyUtil;
+	  exports.Polygon = Polygon;
+	  exports.Polyline = Polyline;
+	  exports.Popup = Popup;
+	  exports.PosAnimation = PosAnimation;
+	  exports.Projection = index;
+	  exports.Rectangle = Rectangle;
+	  exports.Renderer = Renderer;
+	  exports.SVG = SVG;
+	  exports.SVGOverlay = SVGOverlay;
+	  exports.TileLayer = TileLayer;
+	  exports.Tooltip = Tooltip;
+	  exports.Transformation = Transformation;
+	  exports.Util = Util;
+	  exports.VideoOverlay = VideoOverlay;
+	  exports.bind = bind;
+	  exports.bounds = toBounds;
+	  exports.canvas = canvas;
+	  exports.circle = circle;
+	  exports.circleMarker = circleMarker;
+	  exports.control = control;
+	  exports.divIcon = divIcon;
+	  exports.extend = extend;
+	  exports.featureGroup = featureGroup;
+	  exports.geoJSON = geoJSON;
+	  exports.geoJson = geoJson;
+	  exports.gridLayer = gridLayer;
+	  exports.icon = icon;
+	  exports.imageOverlay = imageOverlay;
+	  exports.latLng = toLatLng;
+	  exports.latLngBounds = toLatLngBounds;
+	  exports.layerGroup = layerGroup;
 	  exports.map = createMap;
+	  exports.marker = marker;
+	  exports.point = toPoint;
+	  exports.polygon = polygon;
+	  exports.polyline = polyline;
+	  exports.popup = popup;
+	  exports.rectangle = rectangle;
+	  exports.setOptions = setOptions;
+	  exports.stamp = stamp;
+	  exports.svg = svg;
+	  exports.svgOverlay = svgOverlay;
+	  exports.tileLayer = tileLayer;
+	  exports.tooltip = tooltip;
+	  exports.transformation = toTransformation;
+	  exports.version = version;
+	  exports.videoOverlay = videoOverlay;
 
 	  var oldL = window.L;
 	  exports.noConflict = function() {
 	  	window.L = oldL;
 	  	return this;
 	  }
-
 	  // Always export us to window global (see #2364)
 	  window.L = exports;
 
-	})));
+	}));
 	//# sourceMappingURL=leaflet-src.js.map
 
 
