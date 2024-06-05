@@ -48,7 +48,9 @@ define([
                 maxZoom: 19,
                 url: '/splunkd/__raw/services/mbtiles/splunk-tiles/{z}/{x}/{y}'
             }
-         };
+        };
+
+        const REQUIRED_FIELDS = ["start_lat", "start_lon", "end_lat", "end_lon"];
 
     // Extend from SplunkVisualizationBase
     return SplunkVisualizationBase.extend({
@@ -65,14 +67,74 @@ define([
         // Optionally implement to format data returned from search. 
         // The returned object will be passed to updateView as 'data'
         formatData: function(data) {
+            var dataResults = data.results;
+            if (!dataResults || dataResults.length === 0 || dataResults[0].length === 0) {
+                return;
+            }
 
-            return data;
+            var dataFields = data.fields;
+
+            // Variables to handle format changes
+            var config = this.getCurrentConfig();
+            var staticColor = this._getEscapedProperty('staticColor', config) || "#65a637";
+            var lineThickness = parseInt(this._getEscapedProperty('lineThickness', config) || 1);
+
+            // Verify required fields availability from search
+            REQUIRED_FIELDS.forEach(field => {
+                let match = dataFields.filter(function (f) {
+                    return f.name === field;
+                });
+                if (match.length <= 0) {
+                    throw new SplunkVisualizationBase.VisualizationError(
+                        'This visualization requires the following fields [' + REQUIRED_FIELDS + ']. Please check your SPL search.'
+                    );
+                }
+            });
+
+            let formatted = dataResults.map(function (d) {
+                var end_lat = parseFloat(d.end_lat);
+                var end_lon = parseFloat(d.end_lon);
+                var start_lat = parseFloat(d.start_lat);
+                var start_lon = parseFloat(d.start_lon);
+                var color = !("color" in d) ? staticColor : vizUtils.escapeHtml(d.color);
+                var animate = !("animate" in d) ? true : vizUtils.normalizeBoolean(d.animate);
+                var pulse_at_start = !("pulse_at_start" in d) ? false : vizUtils.normalizeBoolean(d.pulse_at_start);
+                var weight = !("weight" in d) || (lineThickness != this.activeLineThickness) ? lineThickness : d.weight;
+                var start_label = !("start_label" in d) ? "" : d.start_label;
+                var end_label = !("end_label" in d) ? "" : d.end_label;
+
+                if (animate === true && !this.animated) {
+                    this.animated = animate;
+                }
+
+                return {
+                    "from": [start_lon, start_lat],
+                    "to": [end_lon, end_lat],
+                    "labels": [start_label, end_label],
+                    "color": color,
+                    "animate": animate,
+                    "pulse_at_start": pulse_at_start,
+                    "weight": weight
+                };
+            });
+
+            let retVal = {
+                "fields": REQUIRED_FIELDS.filter(field => { return field.startsWith("start"); }),
+                "formatted": formatted,
+                "raw": data
+            }
+            retVal.fields.push("start_label");
+
+            return retVal;
         },
   
         // Implement updateView to render a visualization.
         //  'data' will be the data object returned from formatData or from the search
         //  'config' will be the configuration property object
         updateView: function(data, config) {
+            if (!data) {
+                return this;
+            }
 
             var tileset = this._getEscapedProperty('tileSet', config) || 'splunk'
             var tileConfig  = TILE_PRESETS[tileset];
@@ -91,6 +153,9 @@ define([
 
             var updateTiles = url !== this.activeTileset;
 
+            var that = this;
+            var formatted = data.formatted;
+            var animated = this.animated = false;
 
             var lat         = this._getEscapedProperty('mapLatitude', config) || 35,
                 lon         = this._getEscapedProperty('mapLongitude', config) || -95,
@@ -99,10 +164,11 @@ define([
             if (this.lat != lat || this.lon != lon || this.zoom != zoom) updateBounds = true;
             else updateBounds = false;
 
-            var staticColor = this._getEscapedProperty('staticColor', config) || "#65a637";
             var lineThickness = parseInt(this._getEscapedProperty('lineThickness', config) || 1);
             var updateLineWidth = lineThickness != this.activeLineThickness;
-	    var scrollWheelZoom = Splunk.util.normalizeBoolean(this._getEscapedProperty('scrollWheelZoom', config) || true)
+            var scrollWheelZoom = Splunk.util.normalizeBoolean(this._getEscapedProperty('scrollWheelZoom', config) || true)
+
+            this.useDrilldown = this._isEnabledDrilldown(config);
 
     		if (!this.isInitializedDom) {
                 var map = this.map = L.map(this.el, { zoomSnap: 0.1, scrollWheelZoom: scrollWheelZoom }).setView([lat, lon], zoom);
@@ -152,88 +218,22 @@ define([
                 }
             }
 
-            var dataRows = data.rows;
-            if (!dataRows || dataRows.length === 0 || dataRows[0].length === 0) {
-                return this;
+            // Creating a LayerGroup to contain all markers
+            if (this.markersGroup) {
+                this.markersGroup.clearLayers();
             }
+            var markersGroup = this.markersGroup = L.layerGroup();
+            this.map.addLayer(markersGroup);
 
-            var dataFields = data.fields;
-            for (i = 0; i < dataFields.length; i++) {
-
-                switch (dataFields[i].name) {
-                    case "end_lat":
-                        var end_lat_idx = i;
-                        break;
-                    case "end_lon":
-                        var end_lon_idx = i;
-                        break;
-                    case "start_lat":
-                        var start_lat_idx = i;
-                        break;
-                    case "start_lon":
-                        var start_lon_idx = i;
-                        break;
-                    case "color":
-                        var color_idx = i;
-                        break;
-                    case "animate":
-                        var animate_idx = i;
-                        break;
-                    case "pulse_at_start":
-                        var pulse_idx = i;
-                        break;
-                    case "weight":
-                        var weight_idx = i;
-                        break;
-                    case "start_label":
-                        var start_label_idx = i;
-                        break;
-                    case "end_label":
-                        var end_label_idx = i;
-                        break;
-                }
-            }
-
-            var animated = false;
-
-            var formatted = dataRows.map(function(d) {
-                var end_lat = parseFloat(+d[end_lat_idx]);
-                var end_lon = parseFloat(+d[end_lon_idx]);
-                var start_lat = parseFloat(+d[start_lat_idx]);
-                var start_lon = parseFloat(+d[start_lon_idx]);
-                var color = vizUtils.escapeHtml(d[color_idx]);
-                var animate = vizUtils.normalizeBoolean(d[animate_idx]);
-                var pulse_at_start = vizUtils.normalizeBoolean(d[pulse_idx]);
-                var weight = +d[weight_idx];
-                var start_label = d[start_label_idx];
-                var end_label = d[end_label_idx];
-
-                if (animate) animated = true; // Global flag to run (or not) the animation loop
-
-                if (!color) color = staticColor;
-                if (!weight) weight = lineThickness;
-
-
-                if( start_label_idx && end_label_idx ){
-                    return {
-                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "labels":[start_label, end_label], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
-                    }
-                }
-                else if( start_label_idx ){
-                    return {
-                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "labels":[start_label, ""], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
-                    }
-                }
-                else if( end_label_idx ){
-                    return {
-                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "labels":["", end_label], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
-                    }
-                }
-                else{
-                    return {
-                        "from":[start_lon, start_lat], "to":[end_lon, end_lat], "color": color, "animate": animate, "pulse_at_start": pulse_at_start, "weight": weight
-                    }
-                }
+            // Filter data to get unique start markers only
+            const markers = [...new Map(formatted.map(v => [v.from[0], v] && [v.from[1], v])).values()];
+            // Add Transparent Markers to the group
+            markers.forEach(element => {
+                let marker = L.marker([element.from[1], element.from[0]])
+                    .setOpacity(0)
+                    .addTo(markersGroup);
+                // Bind to drilldown
+                marker.on("click", that._drilldown.bind(this, element));
             });
 
             this.migrationLayer.setData(formatted);
@@ -244,10 +244,36 @@ define([
             return this;
         },
 
+        _isEnabledDrilldown: function (config) {
+            return (config['display.visualizations.custom.drilldown'] &&
+                config['display.visualizations.custom.drilldown'] === 'all');
+        },
+
+        _drilldown: function (data) {
+            var fields = this.getCurrentData().fields;
+            var drilldownDescription = {
+                action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
+                data: {}
+            };
+
+            // Mapping data
+            let d = {
+                "start_label": data.labels[0],
+                "start_lon": data.from[0],
+                "start_lat": data.from[1]
+            }
+
+            fields.forEach(field => {
+                drilldownDescription.data[field] = d[field];
+            })
+
+            this.drilldown(drilldownDescription);
+        },
+
         // Search data params
         getInitialDataParams: function() {
             return ({
-                outputMode: SplunkVisualizationBase.ROW_MAJOR_OUTPUT_MODE,
+                outputMode: SplunkVisualizationBase.RAW_OUTPUT_MODE,
                 count: this.maxResults
             });
         },
