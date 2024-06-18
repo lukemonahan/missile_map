@@ -206,11 +206,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                lon         = this._getEscapedProperty('mapLongitude', config) || -95,
 	                zoom        = this._getEscapedProperty('mapZoom', config) || 5
 
+	            var showLabels  = Splunk.util.normalizeBoolean(this._getEscapedProperty('showLabels', config) || true);
+
 	            if (this.lat != lat || this.lon != lon || this.zoom != zoom) updateBounds = true;
 	            else updateBounds = false;
 
 	            var lineThickness = parseInt(this._getEscapedProperty('lineThickness', config) || 1);
 	            var updateLineWidth = lineThickness != this.activeLineThickness;
+	            var updateShowLabels = (this.activeShowLabels !== undefined) ? 
+	                                        (showLabels != this.activeShowLabels) : false; 
 	            var scrollWheelZoom = Splunk.util.normalizeBoolean(this._getEscapedProperty('scrollWheelZoom', config) || true)
 
 	            this.useDrilldown = this._isEnabledDrilldown(config);
@@ -222,15 +226,15 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                    attribution: attribution
 	                }).addTo(map);
 
-	                var migrationLayer = this.migrationLayer = new L.migrationLayer({map: map, arcWidth: lineThickness});
+	                var migrationLayer = this.migrationLayer = new L.migrationLayer({ map: map, arcLabel: false, arcWidth: lineThickness });
 	                migrationLayer.addTo(map);
 
-	    			this.isInitializedDom = true;         
+	    			this.isInitializedDom = true;
 	    		} else {
-	                if (updateTiles || updateLineWidth || updateBounds) {
+	                if (updateTiles || updateLineWidth || updateBounds || updateShowLabels) {
 
 	                    this.migrationLayer.destroy();
-	                    var migrationLayer = this.migrationLayer = new L.migrationLayer({map: this.map, arcWidth: lineThickness});
+	                    var migrationLayer = this.migrationLayer = new L.migrationLayer({ map: this.map, arcLabel: false, arcWidth: lineThickness });
 	                    migrationLayer.addTo(this.map);
 
 	                    this.map.removeLayer(this.tileLayer);
@@ -260,23 +264,61 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                    }
 	                    this.activeTileset = url;
 	                    this.activeLineThickness = lineThickness;
+	                    this.activeShowLabels = showLabels;
 	                }
 	            }
 
-	            // Creating a LayerGroup to contain all markers
+	            // Creating a LayerGroup to contain all markers providing new features to the map
 	            if (this.markersGroup) {
 	                this.markersGroup.clearLayers();
 	            }
 	            var markersGroup = this.markersGroup = L.layerGroup();
 	            this.map.addLayer(markersGroup);
+	            
+	            // NOTE
+	            // Since start markers will have drilldown functionality, we draw end markers before start ones 
+	            // to let drilldown be available on the top layer
 
-	            // Filter data to get unique start markers only
-	            const markers = [...new Map(formatted.map(v => [v.from[0], v] && [v.from[1], v])).values()];
-	            // Add Transparent Markers to the group
-	            markers.forEach(element => {
+	            // Get unique end markers only
+	            const markersDest = [...new Map(formatted.map(v => [v.to[0], v] && [v.to[1], v])).values()];
+	            markersDest.forEach(element => {
+	                // Add transparent end markers to the layer group to provide tooltips
+	                let text = "Lat: " + element.to[1] + "\nLon: " + element.to[0];
+	                let markerText = element.labels[1] === "" ? text : element.labels[1];
+	                let marker = L.marker([element.to[1], element.to[0]])
+	                    .setOpacity(0)
+	                    .bindTooltip(markerText, {
+	                        offset: L.point({ x: -10, y: 20 }),
+	                        permanent: 'true'
+	                    })
+	                    .addTo(markersGroup);
+	                // Show/hide tooltips
+	                if (showLabels) {
+	                    marker.openTooltip();
+	                } else {
+	                    marker.closeTooltip();
+	                }
+	            });
+
+	            // Get unique start markers only
+	            const markersSrc = [...new Map(formatted.map(v => [v.from[0], v] && [v.from[1], v])).values()];
+	            markersSrc.forEach(element => {
+	                // Add transparent start markers to the layer group to provide tooltips and drilldown functionalities
+	                let text = "Lat: " + element.from[1] + "\nLon: " + element.from[0];
+	                let markerText = element.labels[0] === "" ? text : element.labels[0];
 	                let marker = L.marker([element.from[1], element.from[0]])
 	                    .setOpacity(0)
+	                    .bindTooltip(markerText, {
+	                        offset: L.point({ x: -10, y: 20 }),
+	                        permanent: 'true'
+	                    })
 	                    .addTo(markersGroup);
+	                // Show/hide tooltips
+	                if (showLabels) {
+	                    marker.openTooltip();
+	                } else {
+	                    marker.closeTooltip();
+	                }
 	                // Bind to drilldown
 	                marker.on("click", that._drilldown.bind(this, element));
 	            });

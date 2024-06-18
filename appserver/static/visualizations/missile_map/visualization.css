@@ -554,7 +554,8 @@
 	border: 1px solid #fff;
 	border-radius: 3px;
 	color: #222;
-	white-space: nowrap;
+	/* Edited white-space to handle new lines in tooltip text */
+	white-space: pre;
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
