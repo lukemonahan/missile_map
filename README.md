@@ -49,6 +49,24 @@ The following options are available to customise:
  	* Latitude: Starting latitude to load
  	* Longitude: Starting longitude to load
  	* Zoom: Starting zoom level to load
+  * Show Labels: Toggle to show/hide labels or latitude and longitude (default)
+
+## Drilldown
+To enrich your dashboards with some interactivity, [enable drilldown in your dashboard panel](https://docs.splunk.com/Documentation/Splunk/latest/Viz/DrilldownIntro#Access_the_drilldown_editor)
+
+```xml
+    <option name="drilldown">all</option>
+    <drilldown>
+      <set token="latitude">$row.start_lat$</set>
+      <set token="longitude">$row.start_lon$</set>
+      <set token="label">$row.start_label$</set>
+    </drilldown>
+```
+
+Assuming the configuration above, by clicking on any arc startpoint in your map, that bunch of tokens will be set. Those tokens can then be used within your dashboard in another panel or visualisation.
+
+The map exposes via drilldown the following field values: `start_lat`, `start_lon` and `start_label`
+
 
 # Support contact
 
