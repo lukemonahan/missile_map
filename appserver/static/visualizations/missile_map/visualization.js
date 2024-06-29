@@ -211,7 +211,7 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	                lon         = this._getEscapedProperty('mapLongitude', config) || -95,
 	                zoom        = this._getEscapedProperty('mapZoom', config) || 5
 
-	            var showLabels  = Splunk.util.normalizeBoolean(this._getEscapedProperty('showLabels', config) || true);
+	            var showLabels  = this._getEscapedProperty('showLabels', config) || "custom";
 
 	            if (this.lat != lat || this.lon != lon || this.zoom != zoom) updateBounds = true;
 	            else updateBounds = false;
@@ -287,45 +287,40 @@ define(["api/SplunkVisualizationBase","api/SplunkVisualizationUtils"], function(
 	            // Get unique end markers only
 	            const markersDest = [...new Map(formatted.map(v => [v.to[0], v] && [v.to[1], v])).values()];
 	            markersDest.forEach(element => {
-	                // Add transparent end markers to the layer group to provide tooltips
-	                let text = "Lat: " + element.to[1] + "\nLon: " + element.to[0];
-	                let markerText = element.labels[1] === "" ? text : element.labels[1];
-	                let marker = L.marker([element.to[1], element.to[0]])
+	                if (showLabels == "custom" && element.labels[1] !== "" || showLabels == "all") {
+	                  // Add transparent end markers to the layer group to provide tooltips
+	                  let text = "Lat: " + element.to[1] + "\nLon: " + element.to[0];
+	                  let markerText = element.labels[1] === "" ? text : element.labels[1];
+	                  let marker = L.marker([element.to[1], element.to[0]])
 	                    .setOpacity(0)
 	                    .bindTooltip(markerText, {
 	                        offset: L.point({ x: -10, y: 20 }),
 	                        permanent: 'true'
 	                    })
 	                    .addTo(markersGroup);
-	                // Show/hide tooltips
-	                if (showLabels) {
-	                    marker.openTooltip();
-	                } else {
-	                    marker.closeTooltip();
+
+	                  marker.openTooltip();
 	                }
 	            });
 
 	            // Get unique start markers only
 	            const markersSrc = [...new Map(formatted.map(v => [v.from[0], v] && [v.from[1], v])).values()];
 	            markersSrc.forEach(element => {
-	                // Add transparent start markers to the layer group to provide tooltips and drilldown functionalities
-	                let text = "Lat: " + element.from[1] + "\nLon: " + element.from[0];
-	                let markerText = element.labels[0] === "" ? text : element.labels[0];
-	                let marker = L.marker([element.from[1], element.from[0]])
+	                if (showLabels == "custom" && element.labels[0] !== "" || showLabels == "all") {
+	                  // Add transparent start markers to the layer group to provide tooltips and drilldown functionalities
+	                  let text = "Lat: " + element.from[1] + "\nLon: " + element.from[0];
+	                  let markerText = element.labels[0] === "" ? text : element.labels[0];
+	                  let marker = L.marker([element.from[1], element.from[0]])
 	                    .setOpacity(0)
 	                    .bindTooltip(markerText, {
 	                        offset: L.point({ x: -10, y: 20 }),
 	                        permanent: 'true'
 	                    })
 	                    .addTo(markersGroup);
-	                // Show/hide tooltips
-	                if (showLabels) {
-	                    marker.openTooltip();
-	                } else {
-	                    marker.closeTooltip();
+
+	                  marker.openTooltip();
+	                  marker.on("click", that._drilldown.bind(this, element));
 	                }
-	                // Bind to drilldown
-	                marker.on("click", that._drilldown.bind(this, element));
 	            });
 
 	            this.migrationLayer.setData(formatted);

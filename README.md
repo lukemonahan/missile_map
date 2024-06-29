@@ -25,8 +25,8 @@ The visualisation looks for fields of the following names:
   * animate: Whether to animate this arc (optional, default "false")
   * pulse_at_start: When animated, set to true to cause the pulse to be at the start of the arc instead of the end (optional, default "false")
   * weight: The line weight of the arc (optional, default 1).
-  * start_label: A label to put at the start of the arc
-  * end_label: A label to put at the end of the arc
+  * start_label: A label to put at the start of the arc. If multiple arcs start at the same point, then this should be the same for each of those arcs to display properly
+  * end_label: A label to put at the end of the arc. If multiple arcs end at the same point, then this should be the same for each of those arcs to display properly.
 
  The fields must be named in this way, but they are not order dependent.
 
@@ -49,7 +49,7 @@ The following options are available to customise:
  	* Latitude: Starting latitude to load
  	* Longitude: Starting longitude to load
  	* Zoom: Starting zoom level to load
-  * Show Labels: Toggle to show/hide labels or latitude and longitude (default)
+  * Show Labels: Toggle to show/hide custom labels (default), latitude and longitude labels, or no labels
 
 ## Drilldown
 To enrich your dashboards with some interactivity, [enable drilldown in your dashboard panel](https://docs.splunk.com/Documentation/Splunk/latest/Viz/DrilldownIntro#Access_the_drilldown_editor)
@@ -70,10 +70,10 @@ The map exposes via drilldown the following field values: `start_lat`, `start_lo
 
 # Support contact
 
-This visualisation was developed at Rivium.
+This visualisation was developed at Tesserent.
 
-http://www.rivium.com.au
-support@rivium.com.au
+http://tesserent.com
+luke.monahan@tesserent.com
 
 # Software credits
 
@@ -82,3 +82,7 @@ Used under BSD license (https://github.com/Leaflet/Leaflet/blob/master/LICENSE)
 
 leaflet.migrationLayer: https://github.com/react-map/leaflet.migrationLayer
 Used under MIT license (https://github.com/react-map/leaflet.migrationLayer/blob/master/LICENSE)
+
+# Authors
+Luke Monahan <luke.monahan@tesserent.com>
+Erica Pescio <epescio@splunk.com>
