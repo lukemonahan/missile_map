@@ -166,7 +166,7 @@ define([
                 lon         = this._getEscapedProperty('mapLongitude', config) || -95,
                 zoom        = this._getEscapedProperty('mapZoom', config) || 5
 
-            var showLabels = Splunk.util.normalizeBoolean(this._getEscapedProperty('showLabels', config) || true);
+            var showLabels = Splunk.util.normalizeBoolean(this._getEscapedProperty('showLabels', config) || false);
 
             if (this.lat != lat || this.lon != lon || this.zoom != zoom) updateBounds = true;
             else updateBounds = false;
