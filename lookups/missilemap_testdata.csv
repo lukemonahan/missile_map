@@ -3,4 +3,4 @@ start_lon,start_lat,end_lon,end_lat,color,animate,pulse_at_start,weight,start_la
 -118.2705,33.9984,-80.247887,25.792296,,,,,Los Angeles,Miami
 -118.2705,33.9984,-87.724088,41.917846,,,,,Los Angeles,
 -118.2705,33.9984,-92.145189,46.77372,,,,3,Los Angeles,
--100,20,-95.999705,35,#0000FF,true,true,,,,,
+-100,20,-95.999705,35,#0000FF,true,true,,,
