@@ -1,3 +1,5 @@
 node_modules/
 *.pyc
 package-lock.json
+.DS_Store
+metadata/local.meta

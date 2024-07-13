@@ -166,15 +166,15 @@ define([
                 lon         = this._getEscapedProperty('mapLongitude', config) || -95,
                 zoom        = this._getEscapedProperty('mapZoom', config) || 5
 
-            var showLabels  = this._getEscapedProperty('showLabels', config) || "custom";
+            var showLabels = Splunk.util.normalizeBoolean(this._getEscapedProperty('showLabels', config) || true);
 
             if (this.lat != lat || this.lon != lon || this.zoom != zoom) updateBounds = true;
             else updateBounds = false;
 
             var lineThickness = parseInt(this._getEscapedProperty('lineThickness', config) || 1);
             var updateLineWidth = lineThickness != this.activeLineThickness;
-            var updateShowLabels = (this.activeShowLabels !== undefined) ? 
-                                        (showLabels != this.activeShowLabels) : false; 
+            var updateShowLabels = (this.activeShowLabels !== undefined) ?
+                (showLabels != this.activeShowLabels) : false;
             var scrollWheelZoom = Splunk.util.normalizeBoolean(this._getEscapedProperty('scrollWheelZoom', config) || true)
 
             this.useDrilldown = this._isEnabledDrilldown(config);
@@ -240,13 +240,13 @@ define([
             // to let drilldown be available on the top layer
 
             // Get unique end markers only
-            const markersDest = [...new Map(formatted.map(v => [v.to[0], v] && [v.to[1], v])).values()];
+            const markersDest =
+                [...new Map(formatted.map(v => [v.to[0], v] && [v.to[1], v])).values()];
             markersDest.forEach(element => {
-                if (showLabels == "custom" && element.labels[1] !== "" || showLabels == "all") {
-                  // Add transparent end markers to the layer group to provide tooltips
-                  let text = "Lat: " + element.to[1] + "\nLon: " + element.to[0];
-                  let markerText = element.labels[1] === "" ? text : element.labels[1];
-                  let marker = L.marker([element.to[1], element.to[0]])
+                // Add transparent end markers to the layer group to provide tooltips
+                let text = "Lat: " + element.to[1] + "\nLon: " + element.to[0];
+                let markerText = element.labels[1] === "" ? text : element.labels[1] + "\n" + text;
+                let marker = L.marker([element.to[1], element.to[0]])
                     .setOpacity(0)
                     .bindTooltip(markerText, {
                         offset: L.point({ x: -10, y: 20 }),
@@ -254,18 +254,22 @@ define([
                     })
                     .addTo(markersGroup);
 
-                  marker.openTooltip();
+                // Show/hide tooltips
+                if (showLabels) {
+                    marker.openTooltip();
+                } else {
+                    marker.closeTooltip();
                 }
             });
 
             // Get unique start markers only
-            const markersSrc = [...new Map(formatted.map(v => [v.from[0], v] && [v.from[1], v])).values()];
+            const markersSrc =
+                [...new Map(formatted.map(v => [v.from[0], v] && [v.from[1], v])).values()];
             markersSrc.forEach(element => {
-                if (showLabels == "custom" && element.labels[0] !== "" || showLabels == "all") {
-                  // Add transparent start markers to the layer group to provide tooltips and drilldown functionalities
-                  let text = "Lat: " + element.from[1] + "\nLon: " + element.from[0];
-                  let markerText = element.labels[0] === "" ? text : element.labels[0];
-                  let marker = L.marker([element.from[1], element.from[0]])
+                // Add transparent start markers to the layer group to provide tooltips and drilldown functionalities
+                let text = "Lat: " + element.from[1] + "\nLon: " + element.from[0];
+                let markerText = element.labels[0] === "" ? text : element.labels[0] + "\n" + text;
+                let marker = L.marker([element.from[1], element.from[0]])
                     .setOpacity(0)
                     .bindTooltip(markerText, {
                         offset: L.point({ x: -10, y: 20 }),
@@ -273,9 +277,15 @@ define([
                     })
                     .addTo(markersGroup);
 
-                  marker.openTooltip();
-                  marker.on("click", that._drilldown.bind(this, element));
+                // Show/hide tooltips
+                if (showLabels) {
+                    marker.openTooltip();
+                } else {
+                    marker.closeTooltip();
                 }
+
+                // Bind to drilldown
+                marker.on("click", that._drilldown.bind(this, element));
             });
 
             this.migrationLayer.setData(formatted);

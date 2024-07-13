@@ -47,6 +47,7 @@ The following options are available to customise:
  	* Latitude: Starting latitude to load
  	* Longitude: Starting longitude to load
  	* Zoom: Starting zoom level to load
+  * Show Labels: Toggle to show/hide labels or latitude and longitude (default)
 
 # Support contact
 
